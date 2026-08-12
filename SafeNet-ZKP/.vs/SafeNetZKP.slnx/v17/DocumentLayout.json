@@ -1,0 +1,181 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenetzkp.application\\dtos\\users\\createusersresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|solutionrelative:safenetzkp.application\\dtos\\users\\createusersresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenetzkp.application\\dtos\\users\\createuserrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|solutionrelative:safenetzkp.application\\dtos\\users\\createuserrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenetzkp.application\\usecases\\users\\createuser\\createuserusercase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|solutionrelative:safenetzkp.application\\usecases\\users\\createuser\\createuserusercase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenetzkp.api\\controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|solutionrelative:safenetzkp.api\\controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenetzkp.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|solutionrelative:safenetzkp.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AA1B3CB8-F602-D3A3-DFEE-CE28921D4C87}|SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenetzkp.domain\\entities\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{AA1B3CB8-F602-D3A3-DFEE-CE28921D4C87}|SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj|solutionrelative:safenetzkp.domain\\entities\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenetzkp.api\\controllers\\healthcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|solutionrelative:safenetzkp.api\\controllers\\healthcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 129,
+          "SelectedChildIndex": 9,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:131:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "UsersController.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\Controllers\\UsersController.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Api\\Controllers\\UsersController.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\Controllers\\UsersController.cs",
+              "RelativeToolTip": "SafeNetZKP.Api\\Controllers\\UsersController.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAkwBYAAAA+AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T20:03:12.818Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "CreateUserUserCase.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Application\\UseCases\\Users\\CreateUser\\CreateUserUserCase.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Application\\UseCases\\Users\\CreateUser\\CreateUserUserCase.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Application\\UseCases\\Users\\CreateUser\\CreateUserUserCase.cs",
+              "RelativeToolTip": "SafeNetZKP.Application\\UseCases\\Users\\CreateUser\\CreateUserUserCase.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T19:50:30.343Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "CreateUsersResponse.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUsersResponse.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Application\\DTOs\\Users\\CreateUsersResponse.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUsersResponse.cs",
+              "RelativeToolTip": "SafeNetZKP.Application\\DTOs\\Users\\CreateUsersResponse.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T19:40:29.534Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "CreateUserRequest.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "RelativeToolTip": "SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T19:38:44.57Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "User.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Domain\\Entities\\User.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Domain\\Entities\\User.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Domain\\Entities\\User.cs",
+              "RelativeToolTip": "SafeNetZKP.Domain\\Entities\\User.cs",
+              "ViewState": "AgIAAAoAAAAAAAAAAAAQwBUAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T19:10:57.307Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "HealthController.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\Controllers\\HealthController.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Api\\Controllers\\HealthController.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\Controllers\\HealthController.cs",
+              "RelativeToolTip": "SafeNetZKP.Api\\Controllers\\HealthController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T19:03:20.232Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\Program.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Api\\Program.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\Program.cs",
+              "RelativeToolTip": "SafeNetZKP.Api\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB4AAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T18:31:17.259Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 37,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

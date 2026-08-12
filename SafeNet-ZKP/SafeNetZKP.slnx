@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SafeNetZKP.Api/SafeNetZKP.Api.csproj" />
+  <Project Path="SafeNetZKP.Application/SafeNetZKP.Application.csproj" />
+  <Project Path="SafeNetZKP.Domain/SafeNetZKP.Domain.csproj" />
+  <Project Path="SafeNetZKP.Infrastructure/SafeNetZKP.Infrastructure.csproj" />
+</Solution>
