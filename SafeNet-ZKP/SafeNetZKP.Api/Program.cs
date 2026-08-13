@@ -1,4 +1,7 @@
 using SafeNetZKP.Application.UseCases.Users.CreateUser;
+using SafeNetZKP.Application.Interfaces.Repositories;
+using SafeNetZKP.Infrastructure.Repositories;
+using SafeNetZKP.Application.UseCases.Users.GetUserById;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +10,10 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<CreateUserUseCase>();
+
+builder.Services.AddScoped<GetUserByIdUseCase>();
+
+builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
 
 var app = builder.Build();
 

@@ -9,3 +9,15 @@ C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\SafeNet
 C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\refint\SafeNetZKP.Domain.dll
 C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\SafeNetZKP.Domain.pdb
 C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\ref\SafeNetZKP.Domain.dll
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\bin\Debug\net10.0\SafeNetZKP.Domain.deps.json
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\bin\Debug\net10.0\SafeNetZKP.Domain.dll
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\bin\Debug\net10.0\SafeNetZKP.Domain.pdb
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\SafeNetZKP.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\SafeNetZKP.Domain.AssemblyInfoInputs.cache
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\SafeNetZKP.Domain.AssemblyInfo.cs
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\SafeNetZKP.Domain.csproj.CoreCompileInputs.cache
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\SafeNetZKP.Domain.sourcelink.json
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\SafeNetZKP.Domain.dll
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\refint\SafeNetZKP.Domain.dll
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\SafeNetZKP.Domain.pdb
+C:\Users\Edilson\Desktop\SafeNet-ZKP\SafeNet-ZKP\SafeNetZKP.Domain\obj\Debug\net10.0\ref\SafeNetZKP.Domain.dll

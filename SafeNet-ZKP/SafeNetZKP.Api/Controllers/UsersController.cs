@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SafeNetZKP.Application.DTOs.Users;
 using SafeNetZKP.Application.UseCases.Users.CreateUser;
-
+using SafeNetZKP.Application.UseCases.Users.GetUserById;
 
 namespace SafeNetZKP.Api.Controllers;
 
@@ -11,15 +11,31 @@ namespace SafeNetZKP.Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly CreateUserUseCase _createUserUseCase;
-    public UsersController(CreateUserUseCase createUserUseCase)
+
+    private readonly GetUserByIdUseCase _getUserByIdUseCase;
+    public UsersController(
+    CreateUserUseCase createUserUseCase,
+    GetUserByIdUseCase getUserByIdUseCase)
     {
         _createUserUseCase = createUserUseCase;
+        _getUserByIdUseCase = getUserByIdUseCase;
     }
     [HttpPost]
-    public IActionResult CreateUser([FromBody] CreateUserRequest request)
+    public async Task<IActionResult> Create(CreateUserRequest request)
     {
-        var response = _createUserUseCase.Execute(request);
+        var response = await _createUserUseCase.ExecuteAsync(request);
 
         return Created($"/api/users/{response.Id}", response);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var response = await _getUserByIdUseCase.ExecuteAsync(id);
+
+        if (response is null)
+            return NotFound();
+
+        return Ok(response);
     }
 }

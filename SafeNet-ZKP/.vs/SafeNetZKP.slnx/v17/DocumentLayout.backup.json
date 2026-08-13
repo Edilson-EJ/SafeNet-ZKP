@@ -1,14 +1,42 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\",
+  "WorkspaceRootPath": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenetzkp.api\\safenetzkp.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|solutionrelative:safenetzkp.api\\safenetzkp.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+      "AbsoluteMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenet-zkp\\safenetzkp.api\\controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|solutionrelative:safenetzkp.api\\controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenetzkp.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenet-zkp\\safenetzkp.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{0D413DEA-A296-543B-CC59-54F00F092321}|SafeNetZKP.Api\\SafeNetZKP.Api.csproj|solutionrelative:safenetzkp.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenet-zkp\\safenetzkp.application\\usecases\\users\\getuserbyid\\getuserbyidusecase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|solutionrelative:safenetzkp.application\\usecases\\users\\getuserbyid\\getuserbyidusecase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C760A95E-9F3B-FC4F-CA86-35C09FB2F233}|SafeNetZKP.Infrastructure\\SafeNetZKP.Infrastructure.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenet-zkp\\safenetzkp.infrastructure\\repositories\\inmemoryuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{C760A95E-9F3B-FC4F-CA86-35C09FB2F233}|SafeNetZKP.Infrastructure\\SafeNetZKP.Infrastructure.csproj|solutionrelative:safenetzkp.infrastructure\\repositories\\inmemoryuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenet-zkp\\safenetzkp.application\\usecases\\users\\createuser\\createuserusercase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|solutionrelative:safenetzkp.application\\usecases\\users\\createuser\\createuserusercase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenet-zkp\\safenetzkp.application\\interfaces\\repositories\\iuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|solutionrelative:safenetzkp.application\\interfaces\\repositories\\iuserrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenet-zkp\\safenetzkp.application\\dtos\\users\\createusersresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|solutionrelative:safenetzkp.application\\dtos\\users\\createusersresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenet-zkp\\safenetzkp.application\\dtos\\users\\createuserrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8E2D7F3F-D3E3-54A1-C5C7-E8933DA66998}|SafeNetZKP.Application\\SafeNetZKP.Application.csproj|solutionrelative:safenetzkp.application\\dtos\\users\\createuserrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AA1B3CB8-F602-D3A3-DFEE-CE28921D4C87}|SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj|c:\\users\\edilson\\desktop\\safenet-zkp\\safenet-zkp\\safenetzkp.domain\\entities\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{AA1B3CB8-F602-D3A3-DFEE-CE28921D4C87}|SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj|solutionrelative:safenetzkp.domain\\entities\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -18,19 +46,20 @@
       "DocumentGroups": [
         {
           "DockedWidth": 129,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 11,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "SafeNetZKP.Api",
-              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\SafeNetZKP.Api.csproj",
-              "RelativeDocumentMoniker": "SafeNetZKP.Api\\SafeNetZKP.Api.csproj",
-              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\SafeNetZKP.Api.csproj",
-              "RelativeToolTip": "SafeNetZKP.Api\\SafeNetZKP.Api.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAANAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-08-12T18:51:35.204Z",
+              "DocumentIndex": 1,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Api\\Program.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Api\\Program.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Api\\Program.cs",
+              "RelativeToolTip": "SafeNetZKP.Api\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T18:31:17.259Z",
+              "IsPinned": true,
               "EditorCaption": ""
             },
             {
@@ -63,16 +92,105 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\Program.cs",
-              "RelativeDocumentMoniker": "SafeNetZKP.Api\\Program.cs",
-              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Api\\Program.cs",
-              "RelativeToolTip": "SafeNetZKP.Api\\Program.cs",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAAABgAAAAKAAAAAAAAAA==",
+              "DocumentIndex": 2,
+              "Title": "GetUserByIdUseCase.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\UseCases\\Users\\GetUserById\\GetUserByIdUseCase.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Application\\UseCases\\Users\\GetUserById\\GetUserByIdUseCase.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\UseCases\\Users\\GetUserById\\GetUserByIdUseCase.cs",
+              "RelativeToolTip": "SafeNetZKP.Application\\UseCases\\Users\\GetUserById\\GetUserByIdUseCase.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-12T18:31:17.259Z",
+              "WhenOpened": "2026-08-13T12:52:40.244Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "InMemoryUserRepository.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Infrastructure\\Repositories\\InMemoryUserRepository.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Infrastructure\\Repositories\\InMemoryUserRepository.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Infrastructure\\Repositories\\InMemoryUserRepository.cs",
+              "RelativeToolTip": "SafeNetZKP.Infrastructure\\Repositories\\InMemoryUserRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T12:45:27.285Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "IUserRepository.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\Interfaces\\Repositories\\IUserRepository.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Application\\Interfaces\\Repositories\\IUserRepository.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\Interfaces\\Repositories\\IUserRepository.cs",
+              "RelativeToolTip": "SafeNetZKP.Application\\Interfaces\\Repositories\\IUserRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T12:37:12.773Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "UsersController.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Api\\Controllers\\UsersController.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Api\\Controllers\\UsersController.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Api\\Controllers\\UsersController.cs",
+              "RelativeToolTip": "SafeNetZKP.Api\\Controllers\\UsersController.cs",
+              "ViewState": "AgIAABMAAAAAAAAAAAAQwCcAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T20:03:12.818Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "CreateUserUserCase.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\UseCases\\Users\\CreateUser\\CreateUserUserCase.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Application\\UseCases\\Users\\CreateUser\\CreateUserUserCase.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\UseCases\\Users\\CreateUser\\CreateUserUserCase.cs",
+              "RelativeToolTip": "SafeNetZKP.Application\\UseCases\\Users\\CreateUser\\CreateUserUserCase.cs",
+              "ViewState": "AgIAAAQAAAAAAAAAAAAuwBsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T19:50:30.343Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "CreateUsersResponse.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUsersResponse.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Application\\DTOs\\Users\\CreateUsersResponse.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUsersResponse.cs",
+              "RelativeToolTip": "SafeNetZKP.Application\\DTOs\\Users\\CreateUsersResponse.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T19:40:29.534Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "User.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Domain\\Entities\\User.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Domain\\Entities\\User.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Domain\\Entities\\User.cs",
+              "RelativeToolTip": "SafeNetZKP.Domain\\Entities\\User.cs",
+              "ViewState": "AgIAAAoAAAAAAAAAAAAQwBUAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T19:10:57.307Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "CreateUserRequest.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "RelativeToolTip": "SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T19:38:44.57Z"
             }
           ]
         },

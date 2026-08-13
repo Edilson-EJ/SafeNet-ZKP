@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/SafeNetZKP.UnitTests/SafeNetZKP.UnitTests.csproj" />
+  </Folder>
   <Project Path="SafeNetZKP.Api/SafeNetZKP.Api.csproj" />
   <Project Path="SafeNetZKP.Application/SafeNetZKP.Application.csproj" />
   <Project Path="SafeNetZKP.Domain/SafeNetZKP.Domain.csproj" />

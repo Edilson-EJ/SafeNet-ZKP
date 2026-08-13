@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj": {}
+    "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj": {
+    "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj",
         "projectName": "SafeNetZKP.Domain",
-        "projectPath": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj",
+        "projectPath": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Domain\\SafeNetZKP.Domain.csproj",
         "packagesPath": "C:\\Users\\Edilson\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNetZKP.Domain\\obj\\",
+        "outputPath": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
