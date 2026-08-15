@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SafeNetZKP.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2d27b8322566990b09698b1246e902b15b2b8785")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d47ee00b679d8f90c85aa528320f37f839fbb429")]
 [assembly: System.Reflection.AssemblyProductAttribute("SafeNetZKP.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SafeNetZKP.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
