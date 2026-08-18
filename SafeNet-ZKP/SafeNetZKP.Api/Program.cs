@@ -21,7 +21,7 @@ builder.Services.AddScoped<CreateUserUseCase>();
 
 builder.Services.AddScoped<GetUserByIdUseCase>();
 
-builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
+builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
 
 var app = builder.Build();
 
