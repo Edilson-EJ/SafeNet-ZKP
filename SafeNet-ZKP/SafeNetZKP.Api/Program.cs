@@ -1,41 +1,41 @@
-using SafeNetZKP.Application.UseCases.Users.CreateUser;
-using SafeNetZKP.Application.Interfaces.Repositories;
-using SafeNetZKP.Infrastructure.Repositories;
-using SafeNetZKP.Application.UseCases.Users.GetUserById;
 using Microsoft.EntityFrameworkCore;
+using SafeNetZKP.Application.Interfaces.Repositories;
+using SafeNetZKP.Application.UseCases.Users.CreateUser;
+using SafeNetZKP.Application.UseCases.Users.GetUserById;
 using SafeNetZKP.Infrastructure.Persistence;
+using SafeNetZKP.Infrastructure.Repositories;
+using SafeNetZKP.Api.ExceptionHandlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controllers
 builder.Services.AddControllers();
 
+// Entity Framework Core + PostgreSQL
 builder.Services.AddDbContext<SafeNetZkpDbContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
-}
-);
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"));
+});
 
+// OpenAPI
 builder.Services.AddOpenApi();
 
+// Dependency Injection
 builder.Services.AddScoped<CreateUserUseCase>();
-
 builder.Services.AddScoped<GetUserByIdUseCase>();
-
 builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
+
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+// Tratamento de erros
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-//Remove depois
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider
-        .GetRequiredService<SafeNetZkpDbContext>();
-
-    var canConnect = await dbContext.Database.CanConnectAsync();
-
-    Console.WriteLine(
-        $"Conexão com PostgreSQL: {canConnect}");
-}
+// Exception Handler deve estar antes dos endpoints
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
