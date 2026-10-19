@@ -1,0 +1,19 @@
+# Artefatos de compilação do .NET
+[Bb]in/
+[Oo]bj/
+
+# Configurações locais do Visual Studio
+.vs/
+*.user
+*.suo
+
+# Resultados de testes
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Configuração local com possíveis segredos
+.env
+.env.*
+!.env.example
