@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SafeNetZKP.IntegrationTests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+793efd83e7979edca0d804a203c4b53cea043e57")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0f88d8a5e61b86ddcce4501fcc7747c21433670c")]
 [assembly: System.Reflection.AssemblyProductAttribute("SafeNetZKP.IntegrationTests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SafeNetZKP.IntegrationTests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

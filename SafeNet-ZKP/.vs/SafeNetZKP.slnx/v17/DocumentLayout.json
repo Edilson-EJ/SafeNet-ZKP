@@ -88,62 +88,10 @@
               "RelativeDocumentMoniker": "SafeNetZKP.Api\\Program.cs",
               "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Api\\Program.cs",
               "RelativeToolTip": "SafeNetZKP.Api\\Program.cs",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAAAB0AAAA/AAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAA/AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-08-12T18:31:17.259Z",
               "IsPinned": true,
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "GlobalExceptionHandler.cs",
-              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Api\\ExceptionHandlers\\GlobalExceptionHandler.cs",
-              "RelativeDocumentMoniker": "SafeNetZKP.Api\\ExceptionHandlers\\GlobalExceptionHandler.cs",
-              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Api\\ExceptionHandlers\\GlobalExceptionHandler.cs",
-              "RelativeToolTip": "SafeNetZKP.Api\\ExceptionHandlers\\GlobalExceptionHandler.cs",
-              "ViewState": "AgIAABIAAAAAAAAAAAAYwCIAAAAUAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-26T13:54:30.547Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "CreateUserRequest.cs",
-              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
-              "RelativeDocumentMoniker": "SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
-              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
-              "RelativeToolTip": "SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAARAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-26T12:49:10.148Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "PostgresUserRepositoryTests.cs",
-              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\tests\\SafeNetZKP.IntegrationTests\\PostgresUserRepositoryTests.cs",
-              "RelativeDocumentMoniker": "tests\\SafeNetZKP.IntegrationTests\\PostgresUserRepositoryTests.cs",
-              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\tests\\SafeNetZKP.IntegrationTests\\PostgresUserRepositoryTests.cs",
-              "RelativeToolTip": "tests\\SafeNetZKP.IntegrationTests\\PostgresUserRepositoryTests.cs",
-              "ViewState": "AgIAAAUAAAAAAAAAAAAAABQAAAARAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-26T12:05:55.386Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "TesteDatabase.cs",
-              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\tests\\SafeNetZKP.IntegrationTests\\TesteDatabase.cs",
-              "RelativeDocumentMoniker": "tests\\SafeNetZKP.IntegrationTests\\TesteDatabase.cs",
-              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\tests\\SafeNetZKP.IntegrationTests\\TesteDatabase.cs",
-              "RelativeToolTip": "tests\\SafeNetZKP.IntegrationTests\\TesteDatabase.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAwAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-26T12:03:56.514Z",
               "EditorCaption": ""
             },
             {
@@ -173,6 +121,54 @@
             {
               "$type": "Bookmark",
               "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "GlobalExceptionHandler.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Api\\ExceptionHandlers\\GlobalExceptionHandler.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Api\\ExceptionHandlers\\GlobalExceptionHandler.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Api\\ExceptionHandlers\\GlobalExceptionHandler.cs",
+              "RelativeToolTip": "SafeNetZKP.Api\\ExceptionHandlers\\GlobalExceptionHandler.cs",
+              "ViewState": "AgIAABIAAAAAAAAAAAAYwCIAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-26T13:54:30.547Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "CreateUserRequest.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "RelativeDocumentMoniker": "SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "RelativeToolTip": "SafeNetZKP.Application\\DTOs\\Users\\CreateUserRequest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-26T12:49:10.148Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "PostgresUserRepositoryTests.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\tests\\SafeNetZKP.IntegrationTests\\PostgresUserRepositoryTests.cs",
+              "RelativeDocumentMoniker": "tests\\SafeNetZKP.IntegrationTests\\PostgresUserRepositoryTests.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\tests\\SafeNetZKP.IntegrationTests\\PostgresUserRepositoryTests.cs",
+              "RelativeToolTip": "tests\\SafeNetZKP.IntegrationTests\\PostgresUserRepositoryTests.cs",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAAABQAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-26T12:05:55.386Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "TesteDatabase.cs",
+              "DocumentMoniker": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\tests\\SafeNetZKP.IntegrationTests\\TesteDatabase.cs",
+              "RelativeDocumentMoniker": "tests\\SafeNetZKP.IntegrationTests\\TesteDatabase.cs",
+              "ToolTip": "C:\\Users\\Edilson\\Desktop\\SafeNet-ZKP\\SafeNet-ZKP\\tests\\SafeNetZKP.IntegrationTests\\TesteDatabase.cs",
+              "RelativeToolTip": "tests\\SafeNetZKP.IntegrationTests\\TesteDatabase.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-26T12:03:56.514Z"
             },
             {
               "$type": "Document",
