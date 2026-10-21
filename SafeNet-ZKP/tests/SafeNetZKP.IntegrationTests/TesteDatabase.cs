@@ -1,17 +1,32 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using SafeNetZKP.Infrastructure.Persistence;
 
 namespace SafeNetZKP.IntegrationTests;
 
 public static class TestDatabase
 {
-    private const string ConnectionString =
-        "Host=localhost;Port=5432;Database=safenet_zkp_test;Username=safenet;Password=safenet_dev_password";
-
     public static SafeNetZkpDbContext CreateContext()
     {
+        var connectionString = Environment.GetEnvironmentVariable(
+            "SAFENET_TEST_CONNECTION_STRING");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "A variável SAFENET_TEST_CONNECTION_STRING não foi configurada.");
+        }
+
+        var connection = new NpgsqlConnectionStringBuilder(connectionString);
+
+        if (connection.Database != "safenet_zkp_test")
+        {
+            throw new InvalidOperationException(
+                "Os testes devem utilizar o banco safenet_zkp_test.");
+        }
+
         var options = new DbContextOptionsBuilder<SafeNetZkpDbContext>()
-            .UseNpgsql(ConnectionString)
+            .UseNpgsql(connectionString)
             .Options;
 
         return new SafeNetZkpDbContext(options);
