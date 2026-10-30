@@ -20,10 +20,17 @@ public class CreateUserUseCaseTests
         // Act
         var response = await useCase.ExecuteAsync(request);
 
-        // Assert
+        // Assert - resposta
         Assert.NotEqual(Guid.Empty, response.Id);
         Assert.Equal("Edilson", response.Name);
         Assert.NotEqual(default, response.CreatedAt);
+
+        // Assert - persistência no repositório falso
+        var savedUser = Assert.Single(repository.Users);
+
+        Assert.Equal(response.Id, savedUser.Id);
+        Assert.Equal(response.Name, savedUser.Name);
+        Assert.Equal(response.CreatedAt, savedUser.CreatedAt);
     }
 
     [Fact]

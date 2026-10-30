@@ -1,32 +1,44 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace SafeNetZKP.Domain.Entities
 {
     public class User
     {
-        public Guid Id { get; set; }
+        public Guid Id { get; private set; }
 
-        public string Name { get; set; }
+        public string Name { get; private set; }
 
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; private set; }
 
-        private User() 
-        { 
+        private User()
+        {
             Name = string.Empty;
-        } 
+        }
 
         public User(string name)
         {
-            if(string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(name))
             {
-                throw new ArgumentException("O nome do usuário é obrigatório.", nameof(name));
+                throw new ArgumentException(
+                    "O nome do usuário é obrigatório.",
+                    nameof(name));
             }
 
             Id = Guid.NewGuid();
             Name = name;
             CreatedAt = DateTime.UtcNow;
+        }
+
+        public void ChangeName(string newName)
+        {
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                throw new ArgumentException(
+                    "O nome do usuário é obrigatório.",
+                    nameof(newName));
+            }
+
+            Name = newName;
         }
     }
 }
