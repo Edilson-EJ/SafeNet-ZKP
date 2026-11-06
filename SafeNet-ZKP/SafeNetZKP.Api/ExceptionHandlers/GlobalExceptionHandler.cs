@@ -1,41 +1,47 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-
 
 namespace SafeNetZKP.Api.ExceptionHandlers;
 
-public class GlobalExceptionHandler : IExceptionHandler
+public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
+    private readonly IProblemDetailsService _problemDetailsService;
 
-        public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+    public GlobalExceptionHandler(
+        ILogger<GlobalExceptionHandler> logger,
+        IProblemDetailsService problemDetailsService)
     {
         _logger = logger;
+        _problemDetailsService = problemDetailsService;
     }
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
-        CancellationToken cancellationToken
-        )
+        CancellationToken cancellationToken)
     {
-        _logger.LogError(exception, "Erro não tratado durante o processamento da requisição");
+        _logger.LogError(
+            exception,
+            "Erro não tratado durante o processamento da requisição.");
+
+        httpContext.Response.StatusCode =
+            StatusCodes.Status500InternalServerError;
 
         var problemDetails = new ProblemDetails
         {
             Status = StatusCodes.Status500InternalServerError,
-            Title = "Erro interno do servidor",
-            Detail = "Ocorreu um erro inesperado durante o processamento da requisição."
+            Title = "Erro interno do servidor.",
+            Detail = "Ocorreu um erro inesperado.",
+            Instance = httpContext.Request.Path
         };
 
-        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
-
-        return true;
+        return await _problemDetailsService.TryWriteAsync(
+            new ProblemDetailsContext
+            {
+                HttpContext = httpContext,
+                ProblemDetails = problemDetails
+            });
     }
-
-
 }
-
-

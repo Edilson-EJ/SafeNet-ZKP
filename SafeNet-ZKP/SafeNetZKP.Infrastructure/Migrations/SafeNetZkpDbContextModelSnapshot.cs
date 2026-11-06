@@ -39,6 +39,48 @@ namespace SafeNetZKP.Infrastructure.Migrations
 
                     b.ToTable("Users");
                 });
+
+            modelBuilder.Entity("SafeNetZKP.Domain.Entities.WebAuthnCredential", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("CredentialId")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("PublicKeyCose")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("SignatureCounter")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CredentialId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WebAuthnCredentials");
+                });
+
+            modelBuilder.Entity("SafeNetZKP.Domain.Entities.WebAuthnCredential", b =>
+                {
+                    b.HasOne("SafeNetZKP.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
 #pragma warning restore 612, 618
         }
     }
