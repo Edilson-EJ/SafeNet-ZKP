@@ -21,16 +21,21 @@ builder.Services.AddDbContext<SafeNetZkpDbContext>(options =>
 // OpenAPI
 builder.Services.AddOpenApi();
 
-// Dependency Injection
+
+ // Dependency Injection - Casos de uso
 builder.Services.AddScoped<CreateUserUseCase>();
 builder.Services.AddScoped<GetUserByIdUseCase>();
-builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
 
+// Dependency Injection - Repositórios
+builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
+builder.Services.AddScoped<
+    IWebAuthnCredentialRepository,
+    PostgresWebAuthnCredentialRepository>();
+
+// Tratamento global de exceções
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
-// Tratamento de erros
-builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
