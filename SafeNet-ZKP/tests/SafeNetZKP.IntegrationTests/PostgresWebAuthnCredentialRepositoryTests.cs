@@ -1,8 +1,11 @@
 
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Security.Cryptography;
 using SafeNetZKP.Domain.Entities;
 using SafeNetZKP.Infrastructure.Repositories;
+
+
 
 namespace SafeNetZKP.IntegrationTests;
 
@@ -75,6 +78,7 @@ public class PostgresWebAuthnCredentialRepositoryTests
     }
 
     
+    
     [Fact]
     public async Task GetByCredentialIdAsync_WhenCredentialDoesNotExist_ShouldReturnNull()
     {
@@ -110,5 +114,69 @@ public class PostgresWebAuthnCredentialRepositoryTests
         // Assert
         Assert.Empty(result);
     }
+
+
+    [Fact]
+    public async Task AddAsync_WithDuplicateCredentialId_ShouldThrowException()
+    {
+        // Arrange
+        var user = new User("Teste Credencial Duplicada");
+
+        var credentialId = RandomNumberGenerator.GetBytes(32);
+
+        var firstCredential = new WebAuthnCredential(
+            user.Id,
+            credentialId,
+            [1, 2, 3],
+            0);
+
+        var duplicateCredential = new WebAuthnCredential(
+            user.Id,
+            credentialId,
+            [4, 5, 6],
+            0);
+
+        try
+        {
+            await using var context = TestDatabase.CreateContext();
+
+            var userRepository = new PostgresUserRepository(context);
+
+            var credentialRepository =
+                new PostgresWebAuthnCredentialRepository(context);
+
+            await userRepository.AddAsync(user);
+
+            // Salvar a primeira credencial.
+            await credentialRepository.AddAsync(firstCredential);
+
+            // Act - Tentar salvar outra credencial com o mesmo ID.
+            var exception = await Assert.ThrowsAsync<DbUpdateException>(
+                () => credentialRepository.AddAsync(duplicateCredential));
+
+            // Assert - Verificar a violação de unicidade.
+            var postgresException =
+                Assert.IsType<PostgresException>(exception.InnerException);
+
+            Assert.Equal(
+                PostgresErrorCodes.UniqueViolation,
+                postgresException.SqlState);
+
+            Assert.Equal(
+                "IX_WebAuthnCredentials_CredentialId",
+                postgresException.ConstraintName);
+        }
+        finally
+        {
+            // Limpar os dados criados pelo teste.
+            await using var cleanupContext = TestDatabase.CreateContext();
+
+            await cleanupContext.Users
+                .Where(u => u.Id == user.Id)
+                .ExecuteDeleteAsync();
+        }
+    }
+
+
 
 }

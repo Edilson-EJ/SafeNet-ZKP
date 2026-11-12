@@ -5,6 +5,7 @@ using SafeNetZKP.Application.UseCases.Users.GetUserById;
 using SafeNetZKP.Infrastructure.Persistence;
 using SafeNetZKP.Infrastructure.Repositories;
 using SafeNetZKP.Api.ExceptionHandlers;
+using SafeNetZKP.Infrastructure.WebAuthn;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,44 @@ builder.Services.AddDbContext<SafeNetZkpDbContext>(options =>
 
 // OpenAPI
 builder.Services.AddOpenApi();
+
+// Armazenamento temporário do registro WebAuthn
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<WebAuthnRegistrationStore>();
+
+ // Configuração FIDO2/WebAuthn
+var rpId = builder.Configuration["Fido2:RPID"]
+    ?? throw new InvalidOperationException(
+        "Fido2:RPID não foi configurado.");
+
+var rpName = builder.Configuration["Fido2:RPName"]
+    ?? throw new InvalidOperationException(
+        "Fido2:RPName não foi configurado.");
+
+var origins = builder.Configuration
+    .GetSection("Fido2:Origins")
+    .Get<string[]>();
+
+if (string.IsNullOrWhiteSpace(rpId) ||
+    string.IsNullOrWhiteSpace(rpName) ||
+    origins is null ||
+    origins.Length == 0 ||
+    origins.Any(string.IsNullOrWhiteSpace))
+{
+    throw new InvalidOperationException(
+        "A configuração FIDO2 está incompleta.");
+}
+
+builder.Services.AddFido2(options =>
+{
+    options.RPID = rpId;
+    options.RPName = rpName;
+
+    options.Origins = new HashSet<string>(
+        origins,
+        StringComparer.OrdinalIgnoreCase);
+});
+
 
 
  // Dependency Injection - Casos de uso
