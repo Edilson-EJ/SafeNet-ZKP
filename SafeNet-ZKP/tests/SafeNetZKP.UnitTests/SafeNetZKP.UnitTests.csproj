@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\SafeNetZKP.Application\SafeNetZKP.Application.csproj" />
     <ProjectReference Include="..\..\SafeNetZKP.Domain\SafeNetZKP.Domain.csproj" />
+    <ProjectReference Include="..\..\SafeNetZKP.Infrastructure\SafeNetZKP.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
