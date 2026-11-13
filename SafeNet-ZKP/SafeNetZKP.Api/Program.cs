@@ -6,6 +6,10 @@ using SafeNetZKP.Infrastructure.Persistence;
 using SafeNetZKP.Infrastructure.Repositories;
 using SafeNetZKP.Api.ExceptionHandlers;
 using SafeNetZKP.Infrastructure.WebAuthn;
+using SafeNetZKP.Api.Security;
+using SafeNetZKP.Application.Interfaces.Security;
+using SafeNetZKP.Application.Interfaces.Security;
+using SafeNetZKP.Application.UseCases.WebAuthn.StartEnrollment;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +29,10 @@ builder.Services.AddOpenApi();
 // Armazenamento temporário do registro WebAuthn
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<WebAuthnRegistrationStore>();
+
+// Contexto do usuário autenticado
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 
  // Configuração FIDO2/WebAuthn
 var rpId = builder.Configuration["Fido2:RPID"]
@@ -75,6 +83,11 @@ builder.Services.AddScoped<
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
+
+builder.Services.AddSingleton<IEnrollmentTicketIssuer>(
+    provider => provider.GetRequiredService<WebAuthnEnrollmentTicketStore>());
+
+builder.Services.AddScoped<StartEnrollmentUseCase>();
 
 var app = builder.Build();
 
