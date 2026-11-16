@@ -1,40 +1,45 @@
+
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using SafeNetZKP.Api.ExceptionHandlers;
+using SafeNetZKP.Api.Security;
 using SafeNetZKP.Application.Interfaces.Repositories;
+using SafeNetZKP.Application.Interfaces.Security;
 using SafeNetZKP.Application.UseCases.Users.CreateUser;
 using SafeNetZKP.Application.UseCases.Users.GetUserById;
+using SafeNetZKP.Application.UseCases.WebAuthn.StartEnrollment;
 using SafeNetZKP.Infrastructure.Persistence;
 using SafeNetZKP.Infrastructure.Repositories;
-using SafeNetZKP.Api.ExceptionHandlers;
 using SafeNetZKP.Infrastructure.WebAuthn;
-using SafeNetZKP.Api.Security;
-using SafeNetZKP.Application.Interfaces.Security;
-using SafeNetZKP.Application.Interfaces.Security;
-using SafeNetZKP.Application.UseCases.WebAuthn.StartEnrollment;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
-builder.Services.AddControllers();
+// ============================================================
+// 1. CONTROLLERS E OPENAPI
+// ============================================================
 
-// Entity Framework Core + PostgreSQL
+builder.Services.AddControllers();
+builder.Services.AddOpenApi();
+
+// Serviços de autorização.
+// O mecanismo de autenticação será configurado em etapa futura.
+builder.Services.AddAuthorization();
+
+// ============================================================
+// 2. ENTITY FRAMEWORK CORE + POSTGRESQL
+// ============================================================
+
 builder.Services.AddDbContext<SafeNetZkpDbContext>(options =>
 {
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"));
+        builder.Configuration.GetConnectionString(
+            "DefaultConnection"));
 });
 
-// OpenAPI
-builder.Services.AddOpenApi();
+// ============================================================
+// 3. CONFIGURAÇÃO FIDO2 / WEBAUTHN
+// ============================================================
 
-// Armazenamento temporário do registro WebAuthn
-builder.Services.AddMemoryCache();
-builder.Services.AddSingleton<WebAuthnRegistrationStore>();
-
-// Contexto do usuário autenticado
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
-
- // Configuração FIDO2/WebAuthn
 var rpId = builder.Configuration["Fido2:RPID"]
     ?? throw new InvalidOperationException(
         "Fido2:RPID não foi configurado.");
@@ -57,6 +62,8 @@ if (string.IsNullOrWhiteSpace(rpId) ||
         "A configuração FIDO2 está incompleta.");
 }
 
+builder.Services.AddScoped<WebAuthnEnrollmentOptionsService>();
+
 builder.Services.AddFido2(options =>
 {
     options.RPID = rpId;
@@ -67,33 +74,107 @@ builder.Services.AddFido2(options =>
         StringComparer.OrdinalIgnoreCase);
 });
 
+// ============================================================
+// 4. ARMAZENAMENTO TEMPORÁRIO WEBAUTHN
+// ============================================================
 
+// Cache utilizado durante as operações temporárias.
+builder.Services.AddMemoryCache();
 
- // Dependency Injection - Casos de uso
-builder.Services.AddScoped<CreateUserUseCase>();
-builder.Services.AddScoped<GetUserByIdUseCase>();
+// Armazena as opções de registro WebAuthn por 5 minutos.
+builder.Services.AddSingleton<WebAuthnRegistrationStore>();
 
-// Dependency Injection - Repositórios
-builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
+// Armazena os tokens de inscrição inicial por 10 minutos.
+builder.Services.AddSingleton<WebAuthnEnrollmentTicketStore>();
+
+// Disponibiliza o mesmo armazenamento pela interface.
+builder.Services.AddSingleton<IEnrollmentTicketIssuer>(
+    provider =>
+        provider.GetRequiredService<WebAuthnEnrollmentTicketStore>());
+
+// ============================================================
+// 5. CONTEXTO DO USUÁRIO AUTENTICADO
+// ============================================================
+
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<
+    ICurrentUserContext,
+    HttpCurrentUserContext>();
+
+// ============================================================
+// 6. INJEÇÃO DE DEPENDÊNCIA - REPOSITÓRIOS
+// ============================================================
+
+builder.Services.AddScoped<
+    IUserRepository,
+    PostgresUserRepository>();
+
 builder.Services.AddScoped<
     IWebAuthnCredentialRepository,
     PostgresWebAuthnCredentialRepository>();
 
-// Tratamento global de exceções
+// ============================================================
+// 7. INJEÇÃO DE DEPENDÊNCIA - CASOS DE USO
+// ============================================================
+
+// Usuários
+builder.Services.AddScoped<CreateUserUseCase>();
+builder.Services.AddScoped<GetUserByIdUseCase>();
+
+// Inscrição inicial WebAuthn
+builder.Services.AddScoped<StartEnrollmentUseCase>();
+
+// Geração das opções de registro WebAuthn
+builder.Services.AddScoped<WebAuthnRegistrationOptionsService>();
+
+// ============================================================
+// 8. TRATAMENTO GLOBAL DE EXCEÇÕES
+// ============================================================
+
 builder.Services.AddProblemDetails();
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
+// ============================================================
+// 9. RATE LIMITING - INSCRIÇÃO WEBAUTHN
+// ============================================================
 
-builder.Services.AddSingleton<IEnrollmentTicketIssuer>(
-    provider => provider.GetRequiredService<WebAuthnEnrollmentTicketStore>());
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode =
+        StatusCodes.Status429TooManyRequests;
 
-builder.Services.AddScoped<StartEnrollmentUseCase>();
+    options.AddPolicy(
+        "enrollment-start",
+        context => RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey:
+                context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
+
+// ============================================================
+// 10. BUILD DA APLICAÇÃO
+// ============================================================
 
 var app = builder.Build();
 
-// Exception Handler deve estar antes dos endpoints
+// ============================================================
+// 11. PIPELINE HTTP
+// ============================================================
+
+// Tratamento global de exceções.
 app.UseExceptionHandler();
 
+// Swagger / OpenAPI somente em desenvolvimento.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -106,10 +187,25 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// Evita o aviso de porta HTTPS nos testes locais.
+// Fora de Development, exige configuração HTTPS adequada.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
+// Identifica a rota da requisição.
+app.UseRouting();
+
+// Aplica as políticas de limitação de requisições.
+app.UseRateLimiter();
+
+// Aplica as políticas de autorização.
+// A autenticação real será adicionada posteriormente.
 app.UseAuthorization();
 
+// Mapeia os Controllers.
 app.MapControllers();
 
+// Inicia a aplicação.
 app.Run();
