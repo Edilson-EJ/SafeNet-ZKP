@@ -19,10 +19,14 @@ public static class TestDatabase
 
         var connection = new NpgsqlConnectionStringBuilder(connectionString);
 
-        if (connection.Database != "safenet_zkp_test")
+        if (connection.Database != "safenet_zkp_test" ||
+            connection.Port != 5433 ||
+            (connection.Host != "127.0.0.1" &&
+             !string.Equals(connection.Host, "localhost", StringComparison.OrdinalIgnoreCase) &&
+             connection.Host != "::1"))
         {
             throw new InvalidOperationException(
-                "Os testes devem utilizar o banco safenet_zkp_test.");
+                "Os testes exigem safenet_zkp_test em loopback, na porta 5433.");
         }
 
         var options = new DbContextOptionsBuilder<SafeNetZkpDbContext>()

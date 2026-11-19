@@ -12,6 +12,40 @@ namespace SafeNetZKP.UnitTests.Infrastructure.WebAuthn;
 public class WebAuthnEnrollmentOptionsServiceTests
 {
     [Fact]
+    public async Task GenerateAsync_WhenTokenIsReused_ShouldRejectSecondRequest()
+    {
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var user = new User("Visitante Teste");
+        var tickets = new WebAuthnEnrollmentTicketStore(cache);
+        var service = CreateService(user, tickets, new WebAuthnRegistrationStore(cache));
+        var token = tickets.Issue(user.Id);
+
+        Assert.NotNull(await service.GenerateAsync(token));
+        Assert.Null(await service.GenerateAsync(token));
+    }
+
+    [Fact]
+    public async Task GenerateAsync_ConcurrentRequests_OnlyOneSucceeds()
+    {
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var user = new User("Visitante Teste");
+        var tickets = new WebAuthnEnrollmentTicketStore(cache);
+        var service = CreateService(user, tickets, new WebAuthnRegistrationStore(cache));
+        var token = tickets.Issue(user.Id);
+        using var gate = new ManualResetEventSlim(false);
+
+        var requests = Enumerable.Range(0, 20).Select(_ => Task.Run(async () =>
+        {
+            gate.Wait();
+            return await service.GenerateAsync(token);
+        })).ToArray();
+        gate.Set();
+        var results = await Task.WhenAll(requests);
+
+        Assert.Single(results, result => result is not null);
+    }
+
+    [Fact]
     public async Task GenerateAsync_WithValidToken_ShouldGenerateOptions()
     {
         // Arrange
@@ -106,6 +140,7 @@ public class WebAuthnEnrollmentOptionsServiceTests
 
         // Assert
         Assert.Null(result);
+        Assert.Null(ticketStore.TryGetUserId(enrollmentToken));
     }
 
     [Fact]
@@ -132,6 +167,7 @@ public class WebAuthnEnrollmentOptionsServiceTests
 
         // Assert
         Assert.Null(result);
+        Assert.Null(ticketStore.TryGetUserId(enrollmentToken));
     }
 
     private static WebAuthnEnrollmentOptionsService CreateService(

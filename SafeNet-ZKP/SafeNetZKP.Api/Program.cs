@@ -83,6 +83,7 @@ builder.Services.AddMemoryCache();
 
 // Armazena as opções de registro WebAuthn por 5 minutos.
 builder.Services.AddSingleton<WebAuthnRegistrationStore>();
+builder.Services.AddSingleton<WebAuthnAuthenticationStore>();
 
 // Armazena os tokens de inscrição inicial por 10 minutos.
 builder.Services.AddSingleton<WebAuthnEnrollmentTicketStore>();
@@ -113,6 +114,7 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IWebAuthnCredentialRepository,
     PostgresWebAuthnCredentialRepository>();
+builder.Services.AddScoped<IWebAuthnCounterRepository, PostgresWebAuthnCredentialRepository>();
 
 // ============================================================
 // 7. INJEÇÃO DE DEPENDÊNCIA - CASOS DE USO
@@ -127,6 +129,9 @@ builder.Services.AddScoped<StartEnrollmentUseCase>();
 
 // Geração das opções de registro WebAuthn
 builder.Services.AddScoped<WebAuthnRegistrationOptionsService>();
+builder.Services.AddScoped<WebAuthnRegistrationCompletionService>();
+builder.Services.AddScoped<WebAuthnAuthenticationOptionsService>();
+builder.Services.AddScoped<WebAuthnAuthenticationCompletionService>();
 
 // ============================================================
 // 8. TRATAMENTO GLOBAL DE EXCEÇÕES
@@ -144,6 +149,17 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode =
         StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("authentication-options", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
 
     options.AddPolicy(
         "enrollment-start",
@@ -177,6 +193,8 @@ app.UseExceptionHandler();
 // Swagger / OpenAPI somente em desenvolvimento.
 if (app.Environment.IsDevelopment())
 {
+    // Página local para validação manual WebAuthn; não é servida em produção.
+    app.UseStaticFiles();
     app.MapOpenApi();
 
     app.UseSwaggerUI(options =>

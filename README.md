@@ -178,6 +178,27 @@ A porta efetiva pode variar de acordo com o perfil de inicialização. Confira a
 
 ## Testes
 
+### Inscrição WebAuthn em desenvolvimento
+
+O fluxo experimental usa `POST /api/webauthn/enrollment/start` para criar a conta e obter `enrollmentToken`. Envie esse token a `POST /api/webauthn/enrollment/options` e guarde-o até a conclusão. As opções retornam `operationId` e `options` para `navigator.credentials.create`. Em seguida, envie a `POST /api/webauthn/enrollment/complete` um objeto JSON com `operationId`, `enrollmentToken` e `response`, contendo a credencial WebAuthn serializada no formato JSON da biblioteca Fido2. A conclusão retorna 204 em caso de sucesso e 400 para operação, prova ou resposta inválida.
+
+O token é uma credencial secreta: não o registre em logs nem o inclua em URLs. A operação expira em cinco minutos e é consumida antes da verificação, inclusive em caso de falha ou erro de persistência. Para tentar novamente, é necessário reiniciar a inscrição; a conta criada anteriormente pode permanecer sem credencial. O estado temporário fica na memória de uma única instância e é perdido ao reiniciar a aplicação. Os endpoints de inscrição estão desabilitados fora de Development. Autenticação e sessões ainda não estão implementadas.
+
+### Opções de autenticação WebAuthn
+
+Em Development, `POST /api/webauthn/authentication/options` retorna `operationId` e `options` para `navigator.credentials.get`. Envie o identificador e a resposta serializada para `POST /api/webauthn/authentication/complete`. A operação usa credenciais descobríveis e exige verificação do usuário; o identificador da operação é uma credencial temporária e não deve ser registrado em logs ou colocado em URLs. As opções ficam em memória por cinco minutos e são consumidas uma única vez no processo. A resposta bem-sucedida identifica o usuário, mas não cria sessão. Novos registros exigem credenciais descobríveis e verificação de usuário; credenciais antigas não são presumidas descobríveis e podem precisar de novo registro. O armazenamento não é compartilhado entre instâncias e é perdido ao reiniciar.
+
+### Validação manual no navegador
+
+Use exclusivamente o PostgreSQL de teste com migrations aplicadas e configure `SAFENET_TEST_CONNECTION_STRING` no terminal sem publicar a senha. O script recusa conexões que não apontem para `safenet_zkp_test` em `127.0.0.1:5433`; ele inicia a API em Development e substitui a conexão da API apenas no processo iniciado:
+
+```powershell
+cd SafeNet-ZKP
+.\scripts\start-webauthn-test.ps1
+```
+
+Abra `http://localhost:4200/webauthn-test/index.html` em um navegador compatível com WebAuthn e autenticação de usuário. Registre uma passkey de teste e, em seguida, selecione essa mesma passkey para autenticar. A página compara a identidade retornada com a conta criada durante o teste. Use exatamente `localhost`: o RP ID é `localhost` e a origem configurada é `http://localhost:4200`. O script não cria nem altera migrations e não limpa os dados criados manualmente; a conta e a passkey de teste permanecem no banco e no autenticador até serem removidas pelo operador. Se uma etapa falhar, pode ser necessário aguardar a janela de rate limiting ou reiniciar o registro; contas incompletas podem permanecer no banco de teste. A página é servida somente em Development e não cria uma sessão autenticada.
+
 Os testes unitários verificam regras do domínio e casos de uso, utilizando repositórios falsos quando necessário:
 
 ```powershell

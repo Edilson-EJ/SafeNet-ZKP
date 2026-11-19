@@ -1,5 +1,6 @@
 
 using Fido2NetLib;
+using Fido2NetLib.Objects;
 using Microsoft.Extensions.Caching.Memory;
 using SafeNetZKP.Application.Interfaces.Repositories;
 using SafeNetZKP.Domain.Entities;
@@ -33,6 +34,8 @@ public class WebAuthnRegistrationOptionsServiceTests
         Assert.Equal("localhost", options.Rp.Id);
         Assert.Equal(user.Id.ToByteArray(), options.User.Id);
         Assert.Equal(user.Name, options.User.Name);
+        Assert.Equal(ResidentKeyRequirement.Required, options.AuthenticatorSelection.ResidentKey);
+        Assert.Equal(UserVerificationRequirement.Required, options.AuthenticatorSelection.UserVerification);
 
         Assert.True(options.Challenge.Length >= 16);
 

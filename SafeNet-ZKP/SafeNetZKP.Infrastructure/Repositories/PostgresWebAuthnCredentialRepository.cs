@@ -7,7 +7,7 @@ using SafeNetZKP.Infrastructure.Persistence;
 namespace SafeNetZKP.Infrastructure.Repositories;
 
 public sealed class PostgresWebAuthnCredentialRepository
-    : IWebAuthnCredentialRepository
+    : IWebAuthnCredentialRepository, IWebAuthnCounterRepository
 {
     private readonly SafeNetZkpDbContext _context;
 
@@ -58,5 +58,17 @@ public sealed class PostgresWebAuthnCredentialRepository
             .Where(c => c.UserId == userId)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> TryUpdateCounterAsync(Guid credentialId, uint expectedCounter,
+        uint newCounter, CancellationToken cancellationToken = default)
+    {
+        if (credentialId == Guid.Empty ||
+            (newCounter <= expectedCounter && (newCounter != 0 || expectedCounter != 0)))
+            return false;
+
+        return await _context.WebAuthnCredentials
+            .Where(c => c.Id == credentialId && c.SignatureCounter == expectedCounter)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(c => c.SignatureCounter, newCounter), cancellationToken) == 1;
     }
 }

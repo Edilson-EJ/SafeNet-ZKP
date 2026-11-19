@@ -29,7 +29,8 @@ public sealed class WebAuthnRegistrationOptionsService
     public async Task<(Guid OperationId, CredentialCreateOptions Options)>
         GenerateAsync(
             User user,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            string? completionToken = null)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -60,7 +61,11 @@ public sealed class WebAuthnRegistrationOptionsService
                 User = fido2User,
                 ExcludeCredentials = excludedCredentials,
                 AuthenticatorSelection =
-                    AuthenticatorSelection.Default,
+                    new AuthenticatorSelection
+                    {
+                        ResidentKey = ResidentKeyRequirement.Required,
+                        UserVerification = UserVerificationRequirement.Required
+                    },
                 AttestationPreference =
                     AttestationConveyancePreference.None
             });
@@ -68,7 +73,8 @@ public sealed class WebAuthnRegistrationOptionsService
         // 5. Armazenar temporariamente as opções.
         var operationId = _registrationStore.Store(
             user.Id,
-            options);
+            options,
+            completionToken);
 
         // 6. Retornar o identificador e as opções.
         return (operationId, options);

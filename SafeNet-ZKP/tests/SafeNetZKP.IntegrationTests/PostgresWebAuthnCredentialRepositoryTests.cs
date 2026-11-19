@@ -12,6 +12,42 @@ namespace SafeNetZKP.IntegrationTests;
 public class PostgresWebAuthnCredentialRepositoryTests
 {
     [Fact]
+    public async Task CounterUpdate_UsesAtomicCompareAndSwap_AndAllowsZero()
+    {
+        var user = new User("Teste contador");
+        var credential = new WebAuthnCredential(user.Id, RandomNumberGenerator.GetBytes(32), [1, 2, 3], 0);
+        try
+        {
+            await using (var context = TestDatabase.CreateContext())
+            {
+                await new PostgresUserRepository(context).AddAsync(user);
+                var repository = new PostgresWebAuthnCredentialRepository(context);
+                await repository.AddAsync(credential);
+                Assert.True(await repository.TryUpdateCounterAsync(credential.Id, 0, 0));
+            }
+
+            await using var firstContext = TestDatabase.CreateContext();
+            await using var secondContext = TestDatabase.CreateContext();
+            var first = new PostgresWebAuthnCredentialRepository(firstContext);
+            var second = new PostgresWebAuthnCredentialRepository(secondContext);
+            var results = await Task.WhenAll(
+                first.TryUpdateCounterAsync(credential.Id, 0, 1),
+                second.TryUpdateCounterAsync(credential.Id, 0, 1));
+            Assert.Single(results, succeeded => succeeded);
+            Assert.False(await first.TryUpdateCounterAsync(credential.Id, 0, 2));
+            Assert.False(await first.TryUpdateCounterAsync(credential.Id, 1, 1));
+            Assert.False(await first.TryUpdateCounterAsync(credential.Id, 1, 0));
+            Assert.True(await first.TryUpdateCounterAsync(credential.Id, 1, 2));
+            var persisted = await first.GetByCredentialIdAsync(credential.CredentialId);
+            Assert.Equal(2u, persisted!.SignatureCounter);
+        }
+        finally
+        {
+            await using var context = TestDatabase.CreateContext();
+            await context.Users.Where(u => u.Id == user.Id).ExecuteDeleteAsync();
+        }
+    }
+    [Fact]
     public async Task AddAsync_ShouldPersistCredentialInPostgres()
     {
         // Arrange

@@ -34,6 +34,10 @@ public sealed class WebAuthnEnrollmentOptionsService
         if (userId is null)
             return null;
 
+        // Uma única requisição pode usar o token, inclusive sob concorrência.
+        if (!_ticketStore.Consume(enrollmentToken, userId.Value))
+            return null;
+
         // 2. Confirmar que a conta existe no banco.
         var user = await _userRepository.GetByIdAsync(userId.Value);
 
@@ -44,7 +48,8 @@ public sealed class WebAuthnEnrollmentOptionsService
         var (operationId, options) =
             await _optionsService.GenerateAsync(
                 user,
-                cancellationToken);
+                cancellationToken,
+                enrollmentToken);
 
         // 4. Retornar os dados da operação.
         return new WebAuthnEnrollmentOptionsResult(
