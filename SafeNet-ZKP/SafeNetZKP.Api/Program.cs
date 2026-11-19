@@ -1,5 +1,6 @@
 
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using SafeNetZKP.Api.ExceptionHandlers;
 using SafeNetZKP.Api.Security;
@@ -21,9 +22,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// Serviços de autorização.
-// O mecanismo de autenticação será configurado em etapa futura.
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(SafeNetCookieAuthentication.Configure);
 builder.Services.AddAuthorization();
+builder.Services.AddAntiforgery(SafeNetAntiforgery.Configure);
 
 // ============================================================
 // 2. ENTITY FRAMEWORK CORE + POSTGRESQL
@@ -218,8 +220,8 @@ app.UseRouting();
 // Aplica as políticas de limitação de requisições.
 app.UseRateLimiter();
 
-// Aplica as políticas de autorização.
-// A autenticação real será adicionada posteriormente.
+// Autentica antes de aplicar as políticas de autorização.
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Mapeia os Controllers.

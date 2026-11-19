@@ -18,8 +18,8 @@ try {
     $env:ASPNETCORE_ENVIRONMENT = 'Development'
     $env:Logging__LogLevel__Default = 'Warning'
     $apiProject = Join-Path $PSScriptRoot '../SafeNetZKP.Api/SafeNetZKP.Api.csproj'
-    Write-Host 'Abra http://localhost:4200/webauthn-test/index.html depois que a API iniciar. Para parar, pressione Ctrl+C.'
-    dotnet run --project $apiProject --no-launch-profile --urls http://localhost:4200
+    Write-Host 'Abra https://localhost:4200/webauthn-test/index.html depois que a API iniciar. Para parar, pressione Ctrl+C.'
+    dotnet run --project $apiProject --no-launch-profile --urls https://localhost:4200
     if ($LASTEXITCODE -ne 0) { throw 'A API de teste não iniciou corretamente.' }
 }
 finally {

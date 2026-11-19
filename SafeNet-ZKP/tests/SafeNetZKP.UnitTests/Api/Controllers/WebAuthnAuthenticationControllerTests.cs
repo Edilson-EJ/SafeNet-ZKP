@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using SafeNetZKP.Api.Controllers;
 using SafeNetZKP.Infrastructure.WebAuthn;
@@ -27,7 +28,7 @@ public class WebAuthnAuthenticationControllerTests
         });
         var controller = new WebAuthnAuthenticationController(
             new TestEnvironment { EnvironmentName = environment },
-            new WebAuthnAuthenticationOptionsService(fido, store), null!)
+            new WebAuthnAuthenticationOptionsService(fido, store), null!, new ConfigurationBuilder().Build())
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };

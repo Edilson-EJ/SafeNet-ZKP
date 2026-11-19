@@ -87,12 +87,13 @@ public class WebAuthnAuthenticationCompletionTests
         Assert.Equal(0u, f.Counter);
     }
 
-    private sealed class Fixture : IDisposable, IWebAuthnCredentialRepository, IWebAuthnCounterRepository
+    internal sealed class Fixture : IDisposable, IWebAuthnCredentialRepository, IWebAuthnCounterRepository
     {
         private readonly ECDsa _key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         private readonly MemoryCache _cache;
         private readonly byte[] _id = RandomNumberGenerator.GetBytes(32);
         private readonly byte[] _publicKey;
+        private readonly string _origin;
         private readonly object _sync = new();
         public Guid UserId { get; } = Guid.NewGuid();
         public TestClock Clock { get; } = new();
@@ -103,8 +104,9 @@ public class WebAuthnAuthenticationCompletionTests
         private readonly Guid _credentialId = Guid.NewGuid();
         private readonly WebAuthnCredential _credential;
 
-        public Fixture()
+        public Fixture(string origin = "http://localhost:4200")
         {
+            _origin = origin;
             var key = _key.ExportParameters(false);
             var cbor = new CborWriter();
             cbor.WriteStartMap(5);
@@ -122,7 +124,7 @@ public class WebAuthnAuthenticationCompletionTests
             IFido2 fido = new Fido2NetLib.Fido2(new Fido2Configuration
             {
                 RPID = "localhost", RPName = "SafeNet", ChallengeSize = 32,
-                Origins = new HashSet<string> { "http://localhost:4200" }
+                Origins = new HashSet<string> { origin }
             });
             Options = new WebAuthnAuthenticationOptionsService(fido, store);
             Completion = new WebAuthnAuthenticationCompletionService(fido, store, this, this);
@@ -139,7 +141,7 @@ public class WebAuthnAuthenticationCompletionTests
             {
                 type = "webauthn.get",
                 challenge = B64(invalid == "challenge" ? RandomNumberGenerator.GetBytes(32) : options.Challenge),
-                origin = invalid == "origin" ? "https://wrong.example" : "http://localhost:4200"
+                origin = invalid == "origin" ? "https://wrong.example" : _origin
             });
             var signed = auth.Concat(SHA256.HashData(client)).ToArray();
             var signature = _key.SignData(signed, HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
@@ -180,7 +182,7 @@ public class WebAuthnAuthenticationCompletionTests
         private static string B64(byte[] value) => Convert.ToBase64String(value).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
-    private sealed class TestClock : ISystemClock
+    internal sealed class TestClock : ISystemClock
     {
         public DateTimeOffset UtcNow { get; private set; } = DateTimeOffset.UtcNow;
         public void Advance(TimeSpan duration) => UtcNow += duration;
