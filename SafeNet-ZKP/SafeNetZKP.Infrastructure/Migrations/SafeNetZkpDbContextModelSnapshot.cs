@@ -22,6 +22,122 @@ namespace SafeNetZKP.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SafeNetZKP.Domain.CaptivePortal.NetworkAccessAssociation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GatewayId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Generation")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("LastRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("SessionHash")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionHash", "UserId");
+
+                    b.HasIndex("GatewayId", "ConnectionId", "Generation")
+                        .IsUnique();
+
+                    b.ToTable("NetworkAccessAssociations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_NetworkAccessAssociations_SessionHash", "octet_length(\"SessionHash\") = 32");
+
+                            t.HasCheckConstraint("CK_NetworkAccessAssociations_Validity", "\"Generation\" > 0 AND \"LastRevision\" >= 0 AND \"ExpiresAt\" > \"CreatedAt\"");
+                        });
+                });
+
+            modelBuilder.Entity("SafeNetZKP.Domain.CaptivePortal.NetworkAccessEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AccessUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("AssociationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ConfirmedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GrantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("GrantState")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("IdempotencyKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Revision")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("RevocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RevocationQueuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RevocationState")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ValidUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GrantId")
+                        .IsUnique();
+
+                    b.HasIndex("RevocationId")
+                        .IsUnique();
+
+                    b.HasIndex("AssociationId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("AssociationId", "Revision")
+                        .IsUnique();
+
+                    b.HasIndex("RevocationState", "UpdatedAt");
+
+                    b.ToTable("NetworkAccessOperations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_NetworkAccessOperations_Revocation", "(\"RevocationId\" IS NULL AND \"RevocationState\" IS NULL AND \"RevocationQueuedAt\" IS NULL) OR (\"RevocationId\" IS NOT NULL AND \"RevocationState\" IS NOT NULL AND \"RevocationQueuedAt\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_NetworkAccessOperations_Validity", "\"Revision\" > 0 AND \"ValidUntil\" > \"CreatedAt\" AND \"ValidUntil\" <= \"AccessUntil\"");
+                        });
+                });
+
             modelBuilder.Entity("SafeNetZKP.Domain.Entities.AuthenticatedSession", b =>
                 {
                     b.Property<byte[]>("IdHash")
@@ -102,6 +218,17 @@ namespace SafeNetZKP.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("WebAuthnCredentials");
+                });
+
+            modelBuilder.Entity("SafeNetZKP.Domain.CaptivePortal.NetworkAccessEntry", b =>
+                {
+                    b.HasOne("SafeNetZKP.Domain.CaptivePortal.NetworkAccessAssociation", "Association")
+                        .WithMany()
+                        .HasForeignKey("AssociationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Association");
                 });
 
             modelBuilder.Entity("SafeNetZKP.Domain.Entities.AuthenticatedSession", b =>

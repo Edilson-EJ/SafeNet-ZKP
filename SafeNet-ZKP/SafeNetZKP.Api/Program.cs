@@ -2,11 +2,16 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using SafeNetZKP.Api.Controllers;
 using SafeNetZKP.Api.ExceptionHandlers;
 using SafeNetZKP.Api.Security;
+using SafeNetZKP.Api.Services;
+using SafeNetZKP.Application.Interfaces.Gateways;
 using SafeNetZKP.Application.Interfaces.Repositories;
 using SafeNetZKP.Application.Interfaces.Security;
 using SafeNetZKP.Application.Services;
+using SafeNetZKP.Application.UseCases.CaptivePortal;
+using SafeNetZKP.Infrastructure.CaptivePortal;
 using SafeNetZKP.Application.UseCases.Users.CreateUser;
 using SafeNetZKP.Application.UseCases.Users.GetUserById;
 using SafeNetZKP.Application.UseCases.WebAuthn.StartEnrollment;
@@ -20,7 +25,10 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. CONTROLLERS E OPENAPI
 // ============================================================
 
-builder.Services.AddControllers();
+var controllers = builder.Services.AddControllers();
+if (!builder.Environment.IsDevelopment())
+    controllers.ConfigureApplicationPartManager(manager =>
+        manager.FeatureProviders.Add(new DevelopmentControllerFeatureProvider()));
 builder.Services.AddOpenApi();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -125,6 +133,23 @@ builder.Services.AddScoped<IWebAuthnCounterRepository, PostgresWebAuthnCredentia
 builder.Services.AddScoped<IAuthenticatedSessionRepository, PostgresAuthenticatedSessionRepository>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<AuthenticatedSessionService>();
+builder.Services.AddScoped<INetworkAccessRepository, PostgresNetworkAccessRepository>();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<CaptivePortalIngress>();
+    builder.Services.AddSingleton<InMemoryCaptivePortalGateway>();
+    builder.Services.AddSingleton<ICaptivePortalGateway>(provider =>
+        provider.GetRequiredService<InMemoryCaptivePortalGateway>());
+    builder.Services.AddSingleton<ICaptivePortalAssociationGateway>(provider =>
+        provider.GetRequiredService<InMemoryCaptivePortalGateway>());
+    builder.Services.AddScoped<NetworkAccessService>();
+    builder.Services.AddScoped<PersistentNetworkAccessService>();
+    builder.Services.AddScoped<NetworkRevocationProcessor>();
+
+    if (builder.Configuration.GetValue<bool>("CaptivePortal:ProcessRevocations"))
+        builder.Services.AddHostedService<NetworkRevocationWorker>();
+}
 
 // ============================================================
 // 7. INJEÇÃO DE DEPENDÊNCIA - CASOS DE USO
@@ -159,6 +184,17 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode =
         StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("captive-portal", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            (context.Connection.RemoteIpAddress, Write: HttpMethods.IsPost(context.Request.Method)),
+            partition => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = partition.Write ? 12 : 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
 
     options.AddPolicy("authentication-options", context =>
         RateLimitPartition.GetFixedWindowLimiter(

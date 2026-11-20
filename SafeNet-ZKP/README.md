@@ -47,3 +47,19 @@ O comando `dotnet test tests/SafeNetZKP.UnitTests --no-restore -c Release` passo
 Os testes HTTP usam ASP.NET Core TestServer, passkeys sintéticas e repositórios em memória. Cobrem repetição de cookie revogado com uma segunda sessão ainda ativa, sessões inválidas, cookie adulterado, falhas de leitura e gravação, transporte HTTP e CSRF. O cenário de indisponibilidade usa uma falha simulada do repositório de sessão.
 
 A suíte PostgreSQL compilou em Release. O contêiner isolado expôs `127.0.0.1:5433`, mas a checagem inicial recebeu `28P01` (autenticação recusada). A consulta ao catálogo e a suíte completa ficaram pendentes. Os nove testes PostgreSQL aprovados anteriormente são o resultado informado na entrada desta etapa. Para repetir a validação, usar uma `SAFENET_TEST_CONNECTION_STRING` válida para `safenet_zkp_test` nessa porta.
+
+## Portal cativo Angular
+
+O código do portal está em `SafeNetZKP.Portal/`. Use Node.js 24 LTS e execute na raiz do checkout:
+
+```powershell
+npm.cmd --prefix SafeNetZKP.Portal ci
+npm.cmd --prefix SafeNetZKP.Portal test
+npm.cmd --prefix SafeNetZKP.Portal run build
+```
+
+O build gera os arquivos estáticos em `SafeNetZKP.Api/wwwroot/captive-portal/`. Em Development, o ASP.NET Core serve esses arquivos e a API na mesma origem. O build precisa ser repetido após alterações no frontend.
+
+Para testar com uma passkey real, use um certificado de desenvolvimento confiável (`dotnet dev-certs https --trust`) e uma `SAFENET_TEST_CONNECTION_STRING` já configurada para `safenet_zkp_test` em `127.0.0.1:5433`, com as migrations existentes aplicadas. Inicie a API com `./scripts/start-webauthn-test.ps1` e abra [o portal local](https://localhost:4200/captive-portal/index.html). Para cadastrar uma passkey de teste, use primeiro [a página experimental](https://localhost:4200/webauthn-test/index.html), na mesma origem. O portal faz login com passkeys cadastradas.
+
+O portal distingue o histórico local da confirmação do gateway simulado e acompanha respostas `202` somente em rotas de operação da própria origem. A associação de novas conexões segue indisponível até existir ingresso confiável para o navegador. Consultas e revogação podem ser verificadas com concessões da mesma sessão preparadas por um ambiente de teste confiável. O logout termina a sessão web. A revogação de rede segue a fila existente até confirmação ou vencimento.

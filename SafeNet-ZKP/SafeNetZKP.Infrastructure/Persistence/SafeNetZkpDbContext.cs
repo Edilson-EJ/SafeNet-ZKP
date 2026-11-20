@@ -1,5 +1,6 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
+using SafeNetZKP.Domain.CaptivePortal;
 using SafeNetZKP.Domain.Entities;
 
 namespace SafeNetZKP.Infrastructure.Persistence;
@@ -14,6 +15,8 @@ public class SafeNetZkpDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<AuthenticatedSession> AuthenticatedSessions => Set<AuthenticatedSession>();
+    public DbSet<NetworkAccessAssociation> NetworkAccessAssociations => Set<NetworkAccessAssociation>();
+    public DbSet<NetworkAccessEntry> NetworkAccessOperations => Set<NetworkAccessEntry>();
 
     public DbSet<WebAuthnCredential> WebAuthnCredentials
         => Set<WebAuthnCredential>();
@@ -21,6 +24,7 @@ public class SafeNetZkpDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        ConfigureNetworkAccess(modelBuilder);
 
         modelBuilder.Entity<AuthenticatedSession>(entity =>
         {
@@ -69,6 +73,42 @@ public class SafeNetZkpDbContext : DbContext
             // Cada CredentialId deve ser único.
             entity.HasIndex(c => c.CredentialId)
                 .IsUnique();
+        });
+    }
+
+    private static void ConfigureNetworkAccess(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<NetworkAccessAssociation>(entity =>
+        {
+            entity.ToTable("NetworkAccessAssociations", table =>
+            {
+                table.HasCheckConstraint("CK_NetworkAccessAssociations_SessionHash", "octet_length(\"SessionHash\") = 32");
+                table.HasCheckConstraint("CK_NetworkAccessAssociations_Validity",
+                    "\"Generation\" > 0 AND \"LastRevision\" >= 0 AND \"ExpiresAt\" > \"CreatedAt\"");
+            });
+            entity.Property(item => item.Id).ValueGeneratedNever();
+            entity.Ignore(item => item.Connection);
+            entity.HasIndex(item => new { item.GatewayId, item.ConnectionId, item.Generation }).IsUnique();
+            entity.HasIndex(item => new { item.SessionHash, item.UserId });
+        });
+        modelBuilder.Entity<NetworkAccessEntry>(entity =>
+        {
+            entity.ToTable("NetworkAccessOperations", table =>
+            {
+                table.HasCheckConstraint("CK_NetworkAccessOperations_Validity",
+                    "\"Revision\" > 0 AND \"ValidUntil\" > \"CreatedAt\" AND \"ValidUntil\" <= \"AccessUntil\"");
+                table.HasCheckConstraint("CK_NetworkAccessOperations_Revocation",
+                    "(\"RevocationId\" IS NULL AND \"RevocationState\" IS NULL AND \"RevocationQueuedAt\" IS NULL) OR " +
+                    "(\"RevocationId\" IS NOT NULL AND \"RevocationState\" IS NOT NULL AND \"RevocationQueuedAt\" IS NOT NULL)");
+            });
+            entity.Property(item => item.Id).ValueGeneratedNever();
+            entity.HasOne(item => item.Association).WithMany().HasForeignKey(item => item.AssociationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(item => new { item.AssociationId, item.IdempotencyKey }).IsUnique();
+            entity.HasIndex(item => new { item.AssociationId, item.Revision }).IsUnique();
+            entity.HasIndex(item => item.GrantId).IsUnique();
+            entity.HasIndex(item => item.RevocationId).IsUnique();
+            entity.HasIndex(item => new { item.RevocationState, item.UpdatedAt });
         });
     }
 }

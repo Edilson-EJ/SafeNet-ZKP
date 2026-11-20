@@ -24,6 +24,20 @@ public sealed class AuthenticatedSessionService(
         repository.IsActiveAsync(SHA256.HashData(Convert.FromHexString(id)), userId,
             clock.GetUtcNow().UtcDateTime, cancellationToken);
 
+    internal async Task<(Guid Reference, DateTimeOffset ExpiresAt, byte[] Hash)?> ResolveActiveAsync(
+        string? id, Guid userId, CancellationToken cancellationToken)
+    {
+        if (id is not { Length: 64 } || !id.All(Uri.IsHexDigit))
+            return null;
+
+        var hash = SHA256.HashData(Convert.FromHexString(id));
+        var expiration = await repository.GetActiveExpirationAsync(hash, userId,
+            clock.GetUtcNow().UtcDateTime, cancellationToken);
+        return expiration is { } expiresAt
+            ? (new Guid(hash.AsSpan(0, 16)), new DateTimeOffset(expiresAt, TimeSpan.Zero), hash)
+            : null;
+    }
+
     public Task RevokeAsync(string id, Guid userId, CancellationToken cancellationToken) =>
         repository.RevokeAsync(SHA256.HashData(Convert.FromHexString(id)), userId,
             clock.GetUtcNow().UtcDateTime, cancellationToken);

@@ -22,12 +22,17 @@ internal sealed class InMemorySessionRepository : IAuthenticatedSessionRepositor
         return Task.CompletedTask;
     }
 
-    public Task<bool> IsActiveAsync(byte[] idHash, Guid userId, DateTime now, CancellationToken cancellationToken)
+    public async Task<bool> IsActiveAsync(byte[] idHash, Guid userId, DateTime now, CancellationToken cancellationToken) =>
+        await GetActiveExpirationAsync(idHash, userId, now, cancellationToken) is not null;
+
+    public Task<DateTime?> GetActiveExpirationAsync(byte[] idHash, Guid userId, DateTime now,
+        CancellationToken cancellationToken)
     {
         if (FailReads)
             throw new InvalidOperationException("Test session read failed.");
-        return Task.FromResult(_sessions.TryGetValue(Convert.ToHexString(idHash), out var record) &&
-            record.Session.UserId == userId && record.RevokedAt is null && record.Session.ExpiresAt > now);
+        return Task.FromResult<DateTime?>(_sessions.TryGetValue(Convert.ToHexString(idHash), out var record) &&
+            record.Session.UserId == userId && record.RevokedAt is null && record.Session.ExpiresAt > now
+                ? record.Session.ExpiresAt : null);
     }
 
     public Task RevokeAsync(byte[] idHash, Guid userId, DateTime now, CancellationToken cancellationToken)

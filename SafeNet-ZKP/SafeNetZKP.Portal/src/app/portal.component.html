@@ -1,0 +1,121 @@
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><i></i></span>
+      <div><strong>SafeNet<span>-ZKP</span></strong><small>PORTAL CATIVO</small></div>
+    </div>
+    <nav aria-label="Navegação do portal">
+      <span class="nav-label">MENU DO PORTAL</span>
+      <button type="button" [class.active]="view() === 'session'" [attr.aria-current]="view() === 'session' ? 'page' : null"
+        [disabled]="busy()" (click)="navigate('session')"><span class="icon account" aria-hidden="true"></span>Sessão</button>
+      <button type="button" [class.active]="view() === 'grants'" [attr.aria-current]="view() === 'grants' ? 'page' : null"
+        [disabled]="!session() || busy()" (click)="navigate('grants')"><span class="icon network" aria-hidden="true"></span>Concessões</button>
+      <button type="button" [class.active]="view() === 'operation'" [attr.aria-current]="view() === 'operation' ? 'page' : null"
+        [disabled]="!session() || busy()" (click)="navigate('operation')"><span class="icon activity" aria-hidden="true"></span>Operações</button>
+      <button type="button" class="exit-nav" [class.active]="view() === 'logout'" [attr.aria-current]="view() === 'logout' ? 'page' : null"
+        [disabled]="!session() || busy()" (click)="navigate('logout')"><span class="icon exit" aria-hidden="true"></span>Encerrar sessão</button>
+    </nav>
+    <div class="sidebar-foot"><span aria-hidden="true"></span>Protótipo acadêmico</div>
+  </aside>
+
+  <main id="main">
+    <header class="top">
+      <div class="top-path">Portal cativo <span aria-hidden="true">/</span> @switch (view()) {
+        @case ('grants') { Concessões }
+        @case ('operation') { Operações }
+        @case ('logout') { Encerramento }
+        @default { Sessão }
+      }</div>
+      <span class="session-pill" [class.connected]="session()"><i aria-hidden="true"></i>
+        {{ session() ? 'Sessão ativa' : 'Sem sessão' }}</span>
+    </header>
+
+    <div class="content">
+      @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+      @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+      @if (!session()) {
+        <portal-passkey-panel [busy]="busy()" [available]="passkeyAvailable" (signIn)="signIn()" />
+      } @else {
+        @switch (view()) {
+          @case ('session') {
+            <section class="page-heading"><h1>Sessão</h1><p>Identidade verificada para este navegador.</p></section>
+            <section class="card session-card">
+              <div class="card-icon"><span class="icon account" aria-hidden="true"></span></div>
+              <div><span class="muted">Usuário autenticado</span><h2>{{ session()?.name }}</h2></div>
+              <button type="button" class="secondary" [disabled]="busy()" (click)="refreshSession()">Atualizar sessão</button>
+            </section>
+          }
+          @case ('grants') {
+            <section class="page-heading with-action"><div><h1>Concessões de rede</h1>
+              <p>Histórico desta sessão. Abra uma operação para consultar o gateway simulado.</p></div>
+              <button type="button" class="secondary" [disabled]="busy()" (click)="refreshGrants()">Atualizar lista</button>
+            </section>
+            <section class="card">
+              @if (grants().length === 0) {
+                <h2>Sem concessões registradas</h2>
+                <p class="muted">{{ busy() ? 'Consultando concessões…' : 'As operações desta sessão serão exibidas aqui.' }}</p>
+              } @else {
+                <ul class="grant-list">
+                  @for (grant of grants(); track grant.operationId) {
+                    <li><div><strong>Operação {{ grant.operationId.slice(0, 8) }}</strong>
+                      <span class="muted">Prazo máximo {{ grant.accessUntil | date:'dd/MM/yyyy HH:mm' }}</span></div>
+                      <span class="state">{{ labels[grant.lastKnownState] }}</span>
+                      <button type="button" class="secondary" [disabled]="busy()" (click)="selectOperation(grant.operationId)">Ver detalhes</button></li>
+                  }
+                </ul>
+              }
+            </section>
+          }
+          @case ('operation') {
+            <section class="page-heading"><h1>Acompanhar operação</h1><p>Estado consultado para a sessão atual.</p></section>
+            <section class="card">
+              @if (operation(); as result) {
+                <span class="state">{{ revoking() ? 'Revogação pendente' : labels[result.state] }}</span>
+                <h2>Operação {{ result.operationId.slice(0, 8) }}</h2>
+                @if (result.state === 'authorized') {
+                  <p>Concessão confirmada pelo gateway simulado.</p>
+                  @if (result.expiresAt) { <p class="muted">Válida até {{ result.expiresAt | date:'dd/MM/yyyy HH:mm' }}</p> }
+                } @else if (result.state === 'pending' || result.state === 'indeterminate') {
+                  <p>Aguardando confirmação do gateway. O estado da rede ainda é desconhecido.</p>
+                }
+                @if (following()) { <p class="muted" role="status">Acompanhamento automático em andamento.</p> }
+                <div class="actions">
+                  <button type="button" class="secondary" [disabled]="busy()" (click)="refreshOperation()">Consultar estado</button>
+                  @if (!revoking() && ['authorized', 'indeterminate', 'pending'].includes(result.state)) {
+                    <button type="button" class="secondary" [disabled]="busy()" (click)="requestRevocation()">Solicitar revogação</button>
+                  }
+                </div>
+              } @else {
+                <h2>{{ busy() ? 'Consultando operação…' : 'Selecione uma operação' }}</h2>
+                <button type="button" class="secondary" [disabled]="busy()" (click)="navigate('grants')">Ver concessões</button>
+              }
+            </section>
+          }
+          @case ('logout') {
+            <section class="page-heading"><h1>Encerrar sessão</h1><p>Saia da sua conta neste navegador.</p></section>
+            <section class="card">
+              <h2>Encerrar sessão web</h2>
+              <p class="muted">O logout registra os pedidos de revogação aplicáveis. A rede pode permanecer pendente até a confirmação do gateway ou o vencimento da concessão.</p>
+              <button type="button" class="danger" [disabled]="busy()" (click)="logout()">Confirmar encerramento</button>
+            </section>
+          }
+        }
+      }
+
+      <section class="info-grid" aria-label="Disponibilidade do protótipo">
+        <article class="card info-card">
+          <div class="card-icon"><span class="icon network" aria-hidden="true"></span></div>
+          <h2>Nova conexão</h2>
+          <p>A associação de dispositivos depende de uma observação confiável do gateway e está indisponível neste ambiente.</p>
+        </article>
+        <article class="card info-card">
+          <div class="card-icon"><span class="icon activity" aria-hidden="true"></span></div>
+          <h2>Gateway simulado</h2>
+          <p>As confirmações representam o estado do simulador. Este protótipo não libera tráfego Wi-Fi real.</p>
+        </article>
+      </section>
+      <footer>SafeNet-ZKP <span>Ambiente de desenvolvimento</span></footer>
+    </div>
+  </main>
+</div>

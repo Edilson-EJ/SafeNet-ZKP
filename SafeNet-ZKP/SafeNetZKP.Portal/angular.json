@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": { "analytics": false },
+  "projects": {
+    "portal": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "index": "src/index.html",
+            "tsConfig": "tsconfig.app.json",
+            "styles": ["src/styles.css"],
+            "baseHref": "/captive-portal/",
+            "outputPath": { "base": "../SafeNetZKP.Api/wwwroot/captive-portal", "browser": "" },
+            "outputHashing": "all"
+          },
+          "configurations": { "development": { "optimization": false, "sourceMap": true } }
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": { "tsConfig": "tsconfig.spec.json", "runner": "vitest" }
+        }
+      }
+    }
+  }
+}
