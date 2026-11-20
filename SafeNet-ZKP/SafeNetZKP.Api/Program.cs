@@ -6,6 +6,7 @@ using SafeNetZKP.Api.ExceptionHandlers;
 using SafeNetZKP.Api.Security;
 using SafeNetZKP.Application.Interfaces.Repositories;
 using SafeNetZKP.Application.Interfaces.Security;
+using SafeNetZKP.Application.Services;
 using SafeNetZKP.Application.UseCases.Users.CreateUser;
 using SafeNetZKP.Application.UseCases.Users.GetUserById;
 using SafeNetZKP.Application.UseCases.WebAuthn.StartEnrollment;
@@ -24,7 +25,10 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(SafeNetCookieAuthentication.Configure);
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+    options.AddPolicy("DevelopmentUserCreation", policy => policy
+        .RequireAuthenticatedUser()
+        .RequireAssertion(_ => builder.Environment.IsDevelopment())));
 builder.Services.AddAntiforgery(SafeNetAntiforgery.Configure);
 
 // ============================================================
@@ -58,7 +62,8 @@ if (string.IsNullOrWhiteSpace(rpId) ||
     string.IsNullOrWhiteSpace(rpName) ||
     origins is null ||
     origins.Length == 0 ||
-    origins.Any(string.IsNullOrWhiteSpace))
+    origins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var uri) ||
+        uri.Scheme != Uri.UriSchemeHttps))
 {
     throw new InvalidOperationException(
         "A configuração FIDO2 está incompleta.");
@@ -117,6 +122,9 @@ builder.Services.AddScoped<
     IWebAuthnCredentialRepository,
     PostgresWebAuthnCredentialRepository>();
 builder.Services.AddScoped<IWebAuthnCounterRepository, PostgresWebAuthnCredentialRepository>();
+builder.Services.AddScoped<IAuthenticatedSessionRepository, PostgresAuthenticatedSessionRepository>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<AuthenticatedSessionService>();
 
 // ============================================================
 // 7. INJEÇÃO DE DEPENDÊNCIA - CASOS DE USO
@@ -214,6 +222,21 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+// Bloqueia HTTP antes de processar cookies, desafios ou tokens de inscrição.
+app.Use(async (context, next) =>
+{
+    if (!context.Request.IsHttps &&
+        context.Request.Path.StartsWithSegments("/api") &&
+        context.Request.Path != "/api/health" &&
+        context.Request.Path != "/api/health/")
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return;
+    }
+
+    await next(context);
+});
+
 // Identifica a rota da requisição.
 app.UseRouting();
 
@@ -225,7 +248,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Mapeia os Controllers.
-app.MapControllers();
+app.MapControllers().RequireAuthorization();
 
 // Inicia a aplicação.
 app.Run();
+
+public partial class Program;

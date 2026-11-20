@@ -22,6 +22,37 @@ namespace SafeNetZKP.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SafeNetZKP.Domain.Entities.AuthenticatedSession", b =>
+                {
+                    b.Property<byte[]>("IdHash")
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("IdHash");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AuthenticatedSessions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AuthenticatedSessions_Expiration", "\"ExpiresAt\" > \"CreatedAt\"");
+
+                            t.HasCheckConstraint("CK_AuthenticatedSessions_IdHashLength", "octet_length(\"IdHash\") = 32");
+                        });
+                });
+
             modelBuilder.Entity("SafeNetZKP.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -71,6 +102,15 @@ namespace SafeNetZKP.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("WebAuthnCredentials");
+                });
+
+            modelBuilder.Entity("SafeNetZKP.Domain.Entities.AuthenticatedSession", b =>
+                {
+                    b.HasOne("SafeNetZKP.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SafeNetZKP.Domain.Entities.WebAuthnCredential", b =>

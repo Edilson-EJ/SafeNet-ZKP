@@ -13,6 +13,7 @@ public class SafeNetZkpDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<AuthenticatedSession> AuthenticatedSessions => Set<AuthenticatedSession>();
 
     public DbSet<WebAuthnCredential> WebAuthnCredentials
         => Set<WebAuthnCredential>();
@@ -20,6 +21,20 @@ public class SafeNetZkpDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<AuthenticatedSession>(entity =>
+        {
+            entity.ToTable("AuthenticatedSessions", table =>
+            {
+                table.HasCheckConstraint("CK_AuthenticatedSessions_IdHashLength", "octet_length(\"IdHash\") = 32");
+                table.HasCheckConstraint("CK_AuthenticatedSessions_Expiration", "\"ExpiresAt\" > \"CreatedAt\"");
+            });
+            entity.HasKey(session => session.IdHash);
+            entity.Property(session => session.IdHash).ValueGeneratedNever();
+            entity.HasIndex(session => session.ExpiresAt);
+            entity.HasOne<User>().WithMany().HasForeignKey(session => session.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<WebAuthnCredential>(entity =>
         {

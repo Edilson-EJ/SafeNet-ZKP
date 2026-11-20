@@ -28,7 +28,7 @@ public class WebAuthnAuthenticationControllerTests
         });
         var controller = new WebAuthnAuthenticationController(
             new TestEnvironment { EnvironmentName = environment },
-            new WebAuthnAuthenticationOptionsService(fido, store), null!, new ConfigurationBuilder().Build())
+            new WebAuthnAuthenticationOptionsService(fido, store), null!, new ConfigurationBuilder().Build(), null!)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };

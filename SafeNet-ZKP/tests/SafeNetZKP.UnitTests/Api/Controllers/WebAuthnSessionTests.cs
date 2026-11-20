@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
@@ -10,6 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using SafeNetZKP.Api.Controllers;
 using SafeNetZKP.Api.Security;
+using SafeNetZKP.Application.Interfaces.Repositories;
+using SafeNetZKP.Application.Services;
+using SafeNetZKP.UnitTests.Api.Security;
 using SafeNetZKP.UnitTests.Infrastructure.WebAuthn;
 using Xunit;
 
@@ -48,10 +52,41 @@ public class WebAuthnSessionTests
         Assert.False(auth.Properties!.IsPersistent);
         Assert.False(auth.Properties.AllowRefresh);
         Assert.Equal(TimeSpan.FromMinutes(20), auth.Properties.ExpiresUtc - auth.Properties.IssuedUtc);
+        var id = Assert.IsType<string>(SafeNetCookieAuthentication.GetSessionId(auth.Properties));
+        Assert.Equal(32, Convert.FromHexString(id).Length);
+        var repository = Assert.IsType<InMemorySessionRepository>(
+            services.GetRequiredService<IAuthenticatedSessionRepository>());
+        var persisted = Assert.Single(repository.Sessions);
+        Assert.Equal(SHA256.HashData(Convert.FromHexString(id)), persisted.IdHash);
+        Assert.Equal(f.UserId, persisted.UserId);
+        Assert.Equal(auth.Properties.IssuedUtc!.Value.ToUnixTimeSeconds(),
+            new DateTimeOffset(persisted.CreatedAt).ToUnixTimeSeconds());
+        Assert.Equal(TimeSpan.FromMinutes(20), persisted.ExpiresAt - persisted.CreatedAt);
+        Assert.Null(persisted.RevokedAt);
         Assert.Single(auth.Principal!.Claims);
         Assert.Equal(f.UserId.ToString(), auth.Principal.FindFirstValue(ClaimTypes.NameIdentifier));
         next.User = auth.Principal;
         Assert.Equal(f.UserId, new HttpCurrentUserContext(new HttpContextAccessor { HttpContext = next }).UserId);
+    }
+
+    [Fact]
+    public async Task SessionWriteFailure_DoesNotIssueCookie()
+    {
+        using var f = new WebAuthnAuthenticationCompletionTests.Fixture("https://localhost:4200");
+        using var services = CreateServices();
+        using var scope = services.CreateScope();
+        var repository = Assert.IsType<InMemorySessionRepository>(
+            services.GetRequiredService<IAuthenticatedSessionRepository>());
+        repository.FailWrites = true;
+        var controller = CreateController(f, scope.ServiceProvider);
+        var operation = f.Options.Generate();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Complete(new AuthenticationCompletionRequest
+        {
+            OperationId = operation.OperationId,
+            Response = f.Response(operation.Options, counter: 1)
+        }, CancellationToken.None));
+        Assert.Equal(0, controller.Response.Headers.SetCookie.Count);
+        Assert.Empty(repository.Sessions);
     }
 
     [Theory]
@@ -127,6 +162,7 @@ public class WebAuthnSessionTests
         services.AddLogging();
         services.AddDataProtection().UseEphemeralDataProtectionProvider();
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(SafeNetCookieAuthentication.Configure);
+        InMemorySessionRepository.Register(services);
         return services.BuildServiceProvider();
     }
 
@@ -140,7 +176,8 @@ public class WebAuthnSessionTests
         context.Request.Scheme = "https";
         context.Request.Host = new HostString("localhost", 4200);
         context.Request.Headers.Origin = "https://localhost:4200";
-        return new WebAuthnAuthenticationController(new TestEnvironment(), fixture.Options, fixture.Completion, config)
+        return new WebAuthnAuthenticationController(new TestEnvironment(), fixture.Options, fixture.Completion, config,
+            services.GetRequiredService<AuthenticatedSessionService>())
         {
             ControllerContext = new ControllerContext { HttpContext = context }
         };

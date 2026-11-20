@@ -90,6 +90,7 @@ public class SafeNetCookieAuthenticationTests
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(SafeNetCookieAuthentication.Configure);
         services.AddAuthorization();
+        InMemorySessionRepository.Register(services);
         return services.BuildServiceProvider();
     }
 
@@ -117,8 +118,10 @@ public class SafeNetCookieAuthenticationTests
     {
         using var scope = services.CreateScope();
         var context = CreateContext(scope.ServiceProvider, new AuthorizeAttribute());
+        var userId = Guid.NewGuid();
         await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-            SafeNetCookieAuthentication.CreatePrincipal(Guid.NewGuid()), new AuthenticationProperties { IsPersistent = false });
+            SafeNetCookieAuthentication.CreatePrincipal(userId),
+            await InMemorySessionRepository.IssueAsync(scope.ServiceProvider, userId));
         var header = Assert.Single(context.Response.Headers.SetCookie) ?? throw new InvalidOperationException();
         Assert.Contains("httponly", header, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("secure", header, StringComparison.OrdinalIgnoreCase);

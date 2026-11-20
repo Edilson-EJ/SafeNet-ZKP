@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SafeNetZKP.Api.Security;
 using SafeNetZKP.Application.Interfaces.Security;
+using SafeNetZKP.Application.Services;
 using SafeNetZKP.Application.UseCases.Users.GetUserById;
 
 namespace SafeNetZKP.Api.Controllers;
@@ -15,7 +17,8 @@ namespace SafeNetZKP.Api.Controllers;
 public sealed class AuthController(
     ICurrentUserContext currentUser,
     GetUserByIdUseCase getUserById,
-    IAntiforgery antiforgery) : ControllerBase
+    IAntiforgery antiforgery,
+    AuthenticatedSessionService sessions) : ControllerBase
 {
     [HttpGet("me")]
     public async Task<IActionResult> Me()
@@ -46,7 +49,7 @@ public sealed class AuthController(
         Response.Headers.CacheControl = "no-store";
         if (!Request.IsHttps)
             return StatusCode(StatusCodes.Status403Forbidden);
-        if (currentUser.UserId is null)
+        if (currentUser.UserId is not { } userId)
             return Unauthorized();
         try
         {
@@ -57,7 +60,15 @@ public sealed class AuthController(
             return BadRequest();
         }
 
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        const string scheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        var authentication = await HttpContext.AuthenticateAsync(scheme);
+        var sessionId = authentication.Properties is { } properties
+            ? SafeNetCookieAuthentication.GetSessionId(properties) : null;
+        if (!authentication.Succeeded || sessionId is null)
+            return Unauthorized();
+
+        await sessions.RevokeAsync(sessionId, userId, HttpContext.RequestAborted);
+        await HttpContext.SignOutAsync(scheme);
         return NoContent();
     }
 }

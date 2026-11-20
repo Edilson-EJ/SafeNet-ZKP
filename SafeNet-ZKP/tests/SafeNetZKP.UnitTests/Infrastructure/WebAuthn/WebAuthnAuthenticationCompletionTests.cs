@@ -95,7 +95,7 @@ public class WebAuthnAuthenticationCompletionTests
         private readonly byte[] _publicKey;
         private readonly string _origin;
         private readonly object _sync = new();
-        public Guid UserId { get; } = Guid.NewGuid();
+        public Guid UserId { get; }
         public TestClock Clock { get; } = new();
         public uint Counter { get; private set; }
         public bool RejectUpdate { get; set; }
@@ -104,8 +104,9 @@ public class WebAuthnAuthenticationCompletionTests
         private readonly Guid _credentialId = Guid.NewGuid();
         private readonly WebAuthnCredential _credential;
 
-        public Fixture(string origin = "http://localhost:4200")
+        public Fixture(string origin = "http://localhost:4200", Guid? userId = null)
         {
+            UserId = userId ?? Guid.NewGuid();
             _origin = origin;
             var key = _key.ExportParameters(false);
             var cbor = new CborWriter();
@@ -149,7 +150,7 @@ public class WebAuthnAuthenticationCompletionTests
             var handle = invalid == "user" ? Guid.NewGuid().ToByteArray() : UserId.ToByteArray();
             var json = JsonSerializer.Serialize(new
             {
-                id = B64(id), rawId = B64(id), type = "public-key",
+                id = B64(id), rawId = B64(id), type = "public-key", clientExtensionResults = new { },
                 response = new { authenticatorData = B64(auth), clientDataJSON = B64(client), signature = B64(signature), userHandle = B64(handle) }
             });
             return JsonSerializer.Deserialize<AuthenticatorAssertionRawResponse>(json)!;

@@ -21,12 +21,10 @@ public static class TestDatabase
 
         if (connection.Database != "safenet_zkp_test" ||
             connection.Port != 5433 ||
-            (connection.Host != "127.0.0.1" &&
-             !string.Equals(connection.Host, "localhost", StringComparison.OrdinalIgnoreCase) &&
-             connection.Host != "::1"))
+            connection.Host != "127.0.0.1")
         {
             throw new InvalidOperationException(
-                "Os testes exigem safenet_zkp_test em loopback, na porta 5433.");
+                "Os testes exigem safenet_zkp_test em 127.0.0.1:5433.");
         }
 
         var options = new DbContextOptionsBuilder<SafeNetZkpDbContext>()

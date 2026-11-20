@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SafeNetZKP.Infrastructure.WebAuthn;
 using SafeNetZKP.Api.Security;
+using SafeNetZKP.Application.Services;
 
 namespace SafeNetZKP.Api.Controllers;
 
@@ -17,7 +18,8 @@ public sealed class WebAuthnAuthenticationController(
     IWebHostEnvironment environment,
     WebAuthnAuthenticationOptionsService optionsService,
     WebAuthnAuthenticationCompletionService completionService,
-    IConfiguration configuration) : ControllerBase
+    IConfiguration configuration,
+    AuthenticatedSessionService sessions) : ControllerBase
 {
     [HttpPost("options")]
     [AllowAnonymous]
@@ -51,9 +53,17 @@ public sealed class WebAuthnAuthenticationController(
         if (userId is null || userId == Guid.Empty)
             return BadRequest();
 
+        var session = await sessions.CreateAsync(userId.Value, cancellationToken);
+        var properties = new AuthenticationProperties
+        {
+            IsPersistent = false,
+            AllowRefresh = false,
+            IssuedUtc = session.CreatedAt,
+            ExpiresUtc = session.ExpiresAt
+        };
+        properties.SetString(SafeNetCookieAuthentication.SessionIdKey, session.Id);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-            SafeNetCookieAuthentication.CreatePrincipal(userId.Value),
-            new AuthenticationProperties { IsPersistent = false, AllowRefresh = false });
+            SafeNetCookieAuthentication.CreatePrincipal(userId.Value), properties);
         return Ok(new AuthenticationCompletionResponse(userId.Value));
     }
 

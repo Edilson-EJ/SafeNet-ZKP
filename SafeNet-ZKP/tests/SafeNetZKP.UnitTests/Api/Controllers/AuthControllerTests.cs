@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -11,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SafeNetZKP.Api.Controllers;
 using SafeNetZKP.Api.Security;
 using SafeNetZKP.Application.Interfaces.Repositories;
+using SafeNetZKP.Application.Services;
+using SafeNetZKP.UnitTests.Api.Security;
 using SafeNetZKP.Application.UseCases.Users.GetUserById;
 using SafeNetZKP.Domain.Entities;
 using Xunit;
@@ -64,11 +67,28 @@ public class AuthControllerTests
         Assert.Equal(401, (await fixture.Request("me", cookie)).Response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("legacy")]
+    [InlineData("missing")]
+    [InlineData("expired")]
+    [InlineData("wrong-owner")]
+    [InlineData("unavailable")]
+    public async Task InvalidServerSession_IsRejectedAndCookieIsCleared(string state)
+    {
+        using var fixture = new Fixture();
+        var cookie = await fixture.IssueCookie(sessionState: state);
+        var response = await fixture.Request("me", cookie);
+        Assert.Equal(401, response.Response.StatusCode);
+        Assert.Contains("expires=Thu, 01 Jan 1970", Assert.Single(response.Response.Headers.SetCookie)!,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public async Task Logout_RequiresMatchingAntiforgeryToken_AndDeletesBrowserCookie()
     {
         using var fixture = new Fixture();
         var cookie = await fixture.IssueCookie();
+        var independentCookie = await fixture.IssueCookie();
         var missing = await fixture.Request("logout", cookie);
         Assert.Equal(400, missing.Response.StatusCode);
         Assert.Equal(0, missing.Response.Headers.SetCookie.Count);
@@ -95,8 +115,12 @@ public class AuthControllerTests
         Assert.Contains("expires=Thu, 01 Jan 1970", deletion, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("secure", deletion, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(401, (await fixture.Request("me")).Response.StatusCode);
-        // Uma cópia do cookie anterior continua válida: não há revogação no servidor.
-        Assert.Equal(200, (await fixture.Request("me", cookie)).Response.StatusCode);
+        var replay = await fixture.Request("me", cookie);
+        Assert.Equal(401, replay.Response.StatusCode);
+        Assert.Contains("expires=Thu, 01 Jan 1970", Assert.Single(replay.Response.Headers.SetCookie)!,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(401, (await fixture.Request("logout", bothCookies, token)).Response.StatusCode);
+        Assert.Equal(200, (await fixture.Request("me", independentCookie)).Response.StatusCode);
     }
 
     [Fact]
@@ -127,6 +151,7 @@ public class AuthControllerTests
         private readonly ServiceProvider _services;
         public User User { get; } = new("Pessoa de teste");
         public FakeRepository Repository { get; }
+        private readonly InMemorySessionRepository _sessions;
         public Fixture()
         {
             Repository = new FakeRepository { User = User };
@@ -138,21 +163,40 @@ public class AuthControllerTests
                 .AddCookie(SafeNetCookieAuthentication.Configure);
             services.AddAuthorization();
             services.AddAntiforgery(SafeNetAntiforgery.Configure);
+            _sessions = InMemorySessionRepository.Register(services);
             _services = services.BuildServiceProvider();
         }
 
-        public async Task<string> IssueCookie(bool expired = false, Guid? userId = null)
+        public async Task<string> IssueCookie(bool expired = false, Guid? userId = null, string? sessionState = null)
         {
             using var scope = _services.CreateScope();
             var context = Context(scope.ServiceProvider, "GET");
-            var properties = new AuthenticationProperties { IsPersistent = false };
+            var ownerId = userId ?? User.Id;
+            var properties = new AuthenticationProperties();
+            if (sessionState is "missing" or "expired")
+            {
+                var id = RandomNumberGenerator.GetBytes(32);
+                properties.SetString(SafeNetCookieAuthentication.SessionIdKey, Convert.ToHexString(id));
+                if (sessionState == "expired")
+                {
+                    var now = DateTime.UtcNow;
+                    await _sessions.AddAsync(new AuthenticatedSession(SHA256.HashData(id), ownerId,
+                        now.AddMinutes(-21), now.AddMinutes(-1)), CancellationToken.None);
+                }
+            }
+            else if (sessionState != "legacy")
+            {
+                properties = await InMemorySessionRepository.IssueAsync(scope.ServiceProvider,
+                    sessionState == "wrong-owner" ? Guid.NewGuid() : ownerId);
+            }
+            _sessions.FailReads = sessionState == "unavailable";
             if (expired)
             {
                 properties.IssuedUtc = DateTimeOffset.UtcNow.AddMinutes(-30);
                 properties.ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(-10);
             }
             await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-                SafeNetCookieAuthentication.CreatePrincipal(userId ?? User.Id), properties);
+                SafeNetCookieAuthentication.CreatePrincipal(ownerId), properties);
             return Assert.Single(context.Response.Headers.SetCookie)!.Split(';')[0];
         }
 
@@ -172,7 +216,8 @@ public class AuthControllerTests
             {
                 var controller = new AuthController(
                     new HttpCurrentUserContext(new HttpContextAccessor { HttpContext = ctx }),
-                    new GetUserByIdUseCase(Repository), ctx.RequestServices.GetRequiredService<IAntiforgery>())
+                    new GetUserByIdUseCase(Repository), ctx.RequestServices.GetRequiredService<IAntiforgery>(),
+                    ctx.RequestServices.GetRequiredService<AuthenticatedSessionService>())
                 { ControllerContext = new ControllerContext { HttpContext = ctx } };
                 var result = action switch
                 {
