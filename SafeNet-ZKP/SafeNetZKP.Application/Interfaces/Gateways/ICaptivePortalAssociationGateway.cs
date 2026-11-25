@@ -4,6 +4,7 @@ namespace SafeNetZKP.Application.Interfaces.Gateways;
 
 public interface ICaptivePortalAssociationGateway
 {
+    // Atomically consumes a reference for the observation's current generation and pre-bound session.
     Task<NetworkAssociation?> AssociateAsync(ObservedNetworkConnection observation,
         NetworkAssociationRequest request, CancellationToken cancellationToken);
 }

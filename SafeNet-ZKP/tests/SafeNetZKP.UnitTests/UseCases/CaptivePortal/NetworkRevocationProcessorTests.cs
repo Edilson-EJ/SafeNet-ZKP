@@ -66,9 +66,10 @@ public sealed class NetworkRevocationProcessorTests
             Gateway = new(Clock);
             var now = Clock.GetUtcNow();
             var observation = Gateway.ObserveConnection(TimeSpan.FromMinutes(20));
-            var reference = Gateway.IssueAssociationReference(observation, TimeSpan.FromMinutes(1));
+            var owner = Guid.NewGuid();
+            var reference = Gateway.IssueAssociationReference(observation, owner, TimeSpan.FromMinutes(1));
             var association = Assert.IsType<NetworkAssociation>(Gateway.Associate(observation,
-                new NetworkAssociationRequest(reference, Guid.NewGuid(), Guid.NewGuid(), observation.ExpiresAt)));
+                new NetworkAssociationRequest(reference, Guid.NewGuid(), owner, observation.ExpiresAt)));
             _authorization = new(association, Guid.NewGuid(), Guid.NewGuid(), 1, now.AddMinutes(1), now.AddMinutes(5));
             Repository = new(new NetworkAccessEntry
             {

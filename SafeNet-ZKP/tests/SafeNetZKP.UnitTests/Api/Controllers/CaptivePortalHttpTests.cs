@@ -27,7 +27,7 @@ using SafeNetZKP.UnitTests.Api.Security;
 
 namespace SafeNetZKP.UnitTests.Api.Controllers;
 
-public sealed class CaptivePortalHttpTests
+public sealed partial class CaptivePortalHttpTests
 {
     private const string Root = "/api/captive-portal";
     private static readonly CancellationToken Ct = CancellationToken.None;
@@ -206,10 +206,23 @@ public sealed class CaptivePortalHttpTests
     {
         using var api = new Api();
         using var session = await api.SignInAsync();
-        var binding = await AssociateAsync(session, api.Stage(session));
-        api.Transport.AfterAuthorize = () => api.RevokeSessionAsync(session);
+        var (connection, reference) = StageConnection(api, session);
+        var binding = await AssociateAsync(session, reference);
+        api.Transport.AfterAuthorize = async () =>
+        {
+            using var logout = await session.Client.PostAsync(Logout, null);
+            Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+        };
         using var response = await AuthorizeAsync(session, binding, Guid.NewGuid());
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var pending = Assert.Single(await api.Network.ListPendingRevocationsAsync(10, Ct));
+        Assert.Equal(NetworkAccessState.Pending, pending.RevocationState);
+        Assert.Null(pending.ConfirmedUntil);
+        var gateway = api.Services.GetRequiredService<InMemoryCaptivePortalGateway>();
+        Assert.Equal(NetworkAccessState.Authorized, (await gateway.GetSessionAsync(connection, Ct)).Grant?.State);
+        await using var scope = api.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<NetworkRevocationProcessor>().ProcessPendingAsync(10, Ct);
+        Assert.Equal(NetworkAccessState.Revoked, (await gateway.GetSessionAsync(connection, Ct)).Grant?.State);
     }
 
     [Fact]
@@ -264,7 +277,9 @@ public sealed class CaptivePortalHttpTests
         public void Dispose() => Client.Dispose();
     }
 
-    private sealed class Api(string environment = "Development") : WebApplicationFactory<Program>
+    private sealed class Api(string environment = "Development", string? connectionString = null,
+        InMemoryCaptivePortalGateway? survivingGateway = null, bool processRevocations = false,
+        TimeProvider? clock = null, Action<IWebHostBuilder>? configure = null) : WebApplicationFactory<Program>
     {
         public HttpNetworkRepository Network { get; } = new();
         public TransportGateway Transport => Services.GetRequiredService<TransportGateway>();
@@ -299,15 +314,8 @@ public sealed class CaptivePortalHttpTests
             client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", csrf.Token);
         }
 
-        public string Stage(Session session, SimulatedAuthorizationBehavior behavior = SimulatedAuthorizationBehavior.Confirm)
-        {
-            var gateway = Services.GetRequiredService<InMemoryCaptivePortalGateway>();
-            var observation = gateway.ObserveConnection(TimeSpan.FromMinutes(10), behavior);
-            var reference = gateway.IssueAssociationReference(observation, TimeSpan.FromMinutes(1));
-            Services.GetRequiredService<CaptivePortalIngress>()
-                .StageObservation(session.Id, observation, reference, DateTimeOffset.UtcNow.AddMinutes(1));
-            return reference;
-        }
+        public string Stage(Session session, SimulatedAuthorizationBehavior behavior = SimulatedAuthorizationBehavior.Confirm) =>
+            StageConnection(this, session, behavior: behavior).Reference;
 
         public async Task RevokeSessionAsync(Session session)
         {
@@ -322,8 +330,8 @@ public sealed class CaptivePortalHttpTests
                 ["Fido2:RPID"] = "localhost",
                 ["Fido2:RPName"] = "SafeNet Tests",
                 ["Fido2:Origins:0"] = "https://localhost",
-                ["ConnectionStrings:DefaultConnection"] = "",
-                ["CaptivePortal:ProcessRevocations"] = "false"
+                // Program reads this while registering services, before web-host app configuration.
+                ["CaptivePortal:ProcessRevocations"] = processRevocations.ToString()
             }));
             return base.CreateHost(builder);
         }
@@ -331,6 +339,11 @@ public sealed class CaptivePortalHttpTests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment(environment);
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConnectionStrings:DefaultConnection"] = connectionString ?? ""
+                }));
             builder.ConfigureLogging(logging =>
             {
                 if (OperatingSystem.IsWindows())
@@ -339,21 +352,52 @@ public sealed class CaptivePortalHttpTests
             builder.ConfigureServices(services =>
             {
                 services.AddDataProtection().UseEphemeralDataProtectionProvider();
-                services.RemoveAll<IAuthenticatedSessionRepository>();
-                InMemorySessionRepository.Register(services);
-                services.RemoveAll<INetworkAccessRepository>();
-                services.AddSingleton<INetworkAccessRepository>(Network);
+                if (clock is not null)
+                {
+                    services.RemoveAll<TimeProvider>();
+                    services.AddSingleton(clock);
+                }
+                if (connectionString is null)
+                {
+                    services.RemoveAll<IAuthenticatedSessionRepository>();
+                    services.AddSingleton<IAuthenticatedSessionRepository>(new InMemorySessionRepository
+                    {
+                        OnRevoked = Network.QueueSessionRevocations
+                    });
+                    services.RemoveAll<INetworkAccessRepository>();
+                    services.AddSingleton<INetworkAccessRepository>(Network);
+                    RegisterInMemoryIdentity(services);
+                }
+                if (survivingGateway is not null)
+                {
+                    services.RemoveAll<InMemoryCaptivePortalGateway>();
+                    services.AddSingleton(survivingGateway);
+                }
                 services.RemoveAll<ICaptivePortalGateway>();
+                services.RemoveAll<ICaptivePortalAssociationGateway>();
                 services.AddSingleton<TransportGateway>();
                 services.AddSingleton<ICaptivePortalGateway>(provider => provider.GetRequiredService<TransportGateway>());
+                services.AddSingleton<ICaptivePortalAssociationGateway>(provider => provider.GetRequiredService<TransportGateway>());
             });
+            configure?.Invoke(builder);
         }
     }
 
-    private sealed class TransportGateway(InMemoryCaptivePortalGateway inner) : ICaptivePortalGateway
+    private sealed class TransportGateway(InMemoryCaptivePortalGateway inner)
+        : ICaptivePortalGateway, ICaptivePortalAssociationGateway
     {
         public bool Unavailable { get; set; }
         public Func<Task>? AfterAuthorize { get; set; }
+        public Func<Task>? AfterAssociate { get; set; }
+
+        public async Task<NetworkAssociation?> AssociateAsync(ObservedNetworkConnection observation,
+            NetworkAssociationRequest request, CancellationToken ct)
+        {
+            var result = await inner.AssociateAsync(observation, request, ct);
+            if (AfterAssociate is { } after)
+                await after();
+            return result;
+        }
 
         public async Task<GatewayOperationResult> AuthorizeAsync(NetworkAuthorizationRequest request, CancellationToken ct)
         {
@@ -380,11 +424,16 @@ public sealed class CaptivePortalHttpTests
         private readonly Dictionary<Guid, Row> _rows = new();
 
         public bool FailReads { get; set; }
+        public bool FailReservations { get; set; }
+        public bool FailAssociations { get; set; }
+        public int AssociationCount => _associations.Count;
         public int OperationCount => _rows.Count;
         public int RevocationCount => _rows.Values.Count(row => row.RevocationId is not null);
 
         public Task<bool> AddAssociationAsync(NetworkAccessAssociation association, CancellationToken ct)
         {
+            if (FailAssociations)
+                throw new UnavailableDatabaseException();
             lock (_lock)
                 return Task.FromResult(_associations.TryAdd(association.Id, association));
         }
@@ -393,6 +442,8 @@ public sealed class CaptivePortalHttpTests
             byte[] sessionHash, Guid idempotencyKey, DateTimeOffset now, DateTimeOffset validUntil,
             DateTimeOffset accessUntil, CancellationToken ct)
         {
+            if (FailReservations)
+                throw new UnavailableDatabaseException();
             lock (_lock)
             {
                 if (!_associations.TryGetValue(associationId, out var association) || !Owns(association, userId, sessionHash))
@@ -453,6 +504,18 @@ public sealed class CaptivePortalHttpTests
                 row.RevocationId ??= Guid.NewGuid();
                 row.RevocationState ??= NetworkAccessState.Pending;
                 return Task.FromResult(true);
+            }
+        }
+
+        public void QueueSessionRevocations(Guid userId, byte[] sessionHash)
+        {
+            lock (_lock)
+            {
+                foreach (var row in _rows.Values.Where(row => Owns(row.Entry.Association, userId, sessionHash)))
+                {
+                    row.RevocationId ??= Guid.NewGuid();
+                    row.RevocationState ??= NetworkAccessState.Pending;
+                }
             }
         }
 

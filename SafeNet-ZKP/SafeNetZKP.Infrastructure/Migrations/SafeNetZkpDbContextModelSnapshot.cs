@@ -22,6 +22,34 @@ namespace SafeNetZKP.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SafeNetZKP.Domain.CaptivePortal.GatewayObservation", b =>
+                {
+                    b.Property<Guid>("GatewayId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Nonce")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Generation")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("ObservedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("GatewayId", "Nonce");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.ToTable("GatewayObservations");
+                });
+
             modelBuilder.Entity("SafeNetZKP.Domain.CaptivePortal.NetworkAccessAssociation", b =>
                 {
                     b.Property<Guid>("Id")

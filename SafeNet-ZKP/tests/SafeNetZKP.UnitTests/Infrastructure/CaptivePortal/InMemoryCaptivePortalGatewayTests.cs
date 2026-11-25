@@ -40,8 +40,9 @@ public sealed class InMemoryCaptivePortalGatewayTests
         var query = await lab.Gateway.GetSessionAsync(observation.Key, Ct);
         Assert.NotNull(query.Connection);
         Assert.Throws<InvalidOperationException>(() =>
-            lab.Gateway.IssueAssociationReference(query.Connection, TimeSpan.FromMinutes(1)));
+            lab.Gateway.IssueAssociationReference(query.Connection, request.AuthenticatedSessionReference, TimeSpan.FromMinutes(1)));
         Assert.Null(lab.Gateway.Associate(query.Connection, request));
+        Assert.Null(new InMemoryCaptivePortalGateway(lab.Clock).Associate(observation, request));
         Assert.Null(lab.Gateway.Associate(other, request));
         Assert.Null(lab.Gateway.Associate(observation, request with { Reference = "untrusted" }));
 
@@ -52,7 +53,7 @@ public sealed class InMemoryCaptivePortalGatewayTests
         Assert.Null(lab.Gateway.Associate(observation, request));
         Assert.Null(lab.Gateway.Associate(observation, request with { UserId = Guid.NewGuid() }));
         Assert.Throws<InvalidOperationException>(() =>
-            lab.Gateway.IssueAssociationReference(observation, TimeSpan.FromMinutes(1)));
+            lab.Gateway.IssueAssociationReference(observation, request.AuthenticatedSessionReference, TimeSpan.FromMinutes(1)));
 
         var authorize = lab.Request(association);
         Assert.Equal(NetworkAccessState.Denied,
@@ -78,9 +79,12 @@ public sealed class InMemoryCaptivePortalGatewayTests
         var observation = lab.Gateway.ObserveConnection(TimeSpan.FromMinutes(20));
         var first = lab.AssociationRequest(observation);
         var second = first with { UserId = Guid.NewGuid(), AuthenticatedSessionReference = Guid.NewGuid() };
+        Assert.Throws<InvalidOperationException>(() => lab.Gateway.IssueAssociationReference(observation,
+            second.AuthenticatedSessionReference, TimeSpan.FromMinutes(1)));
         var results = await Task.WhenAll(Task.Run(() => lab.Gateway.Associate(observation, first)),
             Task.Run(() => lab.Gateway.Associate(observation, second)));
-        Assert.Single(results.OfType<NetworkAssociation>());
+        Assert.NotNull(results[0]);
+        Assert.Null(results[1]);
     }
 
     [Fact]
@@ -199,6 +203,18 @@ public sealed class InMemoryCaptivePortalGatewayTests
     }
 
     [Fact]
+    public void ReconnectionDiscardsAnUnusedReferenceFromPreviousGeneration()
+    {
+        var lab = new Lab();
+        var previous = lab.Gateway.ObserveConnection(TimeSpan.FromMinutes(20));
+        var reference = lab.AssociationRequest(previous);
+        var current = lab.Gateway.Reconnect(previous, TimeSpan.FromMinutes(20));
+        Assert.Null(lab.Gateway.Associate(previous, reference));
+        Assert.Null(lab.Gateway.Associate(current, reference));
+        Assert.NotNull(lab.Gateway.Associate(current, lab.AssociationRequest(current)));
+    }
+
+    [Fact]
     public async Task ReconnectionInvalidatesOldGenerationAndAllowsNewAssociation()
     {
         var lab = new Lab();
@@ -235,9 +251,12 @@ public sealed class InMemoryCaptivePortalGatewayTests
 
         public Lab() => Gateway = new InMemoryCaptivePortalGateway(Clock);
 
-        public NetworkAssociationRequest AssociationRequest(ObservedNetworkConnection observation) => new(
-            Gateway.IssueAssociationReference(observation, TimeSpan.FromMinutes(1)), Guid.NewGuid(),
-            Guid.NewGuid(), Clock.GetUtcNow().AddMinutes(10));
+        public NetworkAssociationRequest AssociationRequest(ObservedNetworkConnection observation)
+        {
+            var owner = Guid.NewGuid();
+            return new(Gateway.IssueAssociationReference(observation, owner, TimeSpan.FromMinutes(1)),
+                Guid.NewGuid(), owner, Clock.GetUtcNow().AddMinutes(10));
+        }
 
         public NetworkAssociation Associate(SimulatedAuthorizationBehavior behavior = SimulatedAuthorizationBehavior.Confirm)
         {

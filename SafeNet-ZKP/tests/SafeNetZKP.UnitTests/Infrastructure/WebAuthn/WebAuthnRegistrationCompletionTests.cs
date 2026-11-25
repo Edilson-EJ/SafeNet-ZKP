@@ -99,8 +99,13 @@ public class WebAuthnRegistrationCompletionTests
     private static AuthenticatorAttestationRawResponse MakeResponse(
         CredentialCreateOptions options, string? invalid = null, byte[]? id = null)
     {
-        id ??= RandomNumberGenerator.GetBytes(32);
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        return MakeResponse(options, key, id ?? RandomNumberGenerator.GetBytes(32), "http://localhost:4200", invalid);
+    }
+
+    internal static AuthenticatorAttestationRawResponse MakeResponse(
+        CredentialCreateOptions options, ECDsa key, byte[] id, string origin, string? invalid = null)
+    {
         var publicKey = key.ExportParameters(false);
         var cose = new CborWriter();
         cose.WriteStartMap(5);
@@ -127,12 +132,17 @@ public class WebAuthnRegistrationCompletionTests
         {
             type = "webauthn.create",
             challenge = Base64Url(invalid == "challenge" ? RandomNumberGenerator.GetBytes(32) : options.Challenge),
-            origin = invalid == "origin" ? "https://wrong.example" : "http://localhost:4200"
+            origin = invalid == "origin" ? "https://wrong.example" : origin
         });
         var json = JsonSerializer.Serialize(new
         {
             id = Base64Url(id), rawId = Base64Url(id), type = "public-key",
-            response = new { clientDataJSON = Base64Url(client), attestationObject = Base64Url(attestation.Encode()) }
+            clientExtensionResults = new { },
+            response = new
+            {
+                clientDataJSON = Base64Url(client), attestationObject = Base64Url(attestation.Encode()),
+                transports = Array.Empty<string>()
+            }
         });
         return JsonSerializer.Deserialize<AuthenticatorAttestationRawResponse>(json)!;
     }

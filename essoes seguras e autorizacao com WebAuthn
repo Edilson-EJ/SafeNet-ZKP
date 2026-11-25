@@ -1,0 +1,27 @@
+ SafeNet-ZKP/README.md                              |  49 [32m+++[m
+ .../SafeNetZKP.Api/Controllers/AuthController.cs   |  17 [32m+[m[31m-[m
+ .../SafeNetZKP.Api/Controllers/HealthController.cs |   4 [32m+[m[31m-[m
+ .../SafeNetZKP.Api/Controllers/UsersController.cs  |  54 [32m++[m[31m-[m
+ .../WebAuthnAuthenticationController.cs            |  16 [32m+[m[31m-[m
+ SafeNet-ZKP/SafeNetZKP.Api/Program.cs              |  31 [32m+[m[31m-[m
+ .../Security/SafeNetCookieAuthentication.cs        |  37 [32m+[m[31m-[m
+ .../SafeNetZKP.Api/appsettings.Development.json    |   1 [31m-[m
+ .../IAuthenticatedSessionRepository.cs             |  10 [32m+[m
+ .../Services/AuthenticatedSessionService.cs        |  30 [32m++[m
+ .../Entities/AuthenticatedSession.cs               |  11 [32m+[m
+ ...1120133706_AddAuthenticatedSessions.Designer.cs | 130 [32m+++++++[m
+ .../20261120133706_AddAuthenticatedSessions.cs     |  55 [32m+++[m
+ .../Migrations/SafeNetZkpDbContextModelSnapshot.cs |  40 [32m+++[m
+ .../Persistence/SafeNetZkpDbContext.cs             |  15 [32m+[m
+ .../PostgresAuthenticatedSessionRepository.cs      |  31 [32m++[m
+ .../PostgresAuthenticatedSessionRepositoryTests.cs |  80 [32m+++++[m
+ .../SafeNetZKP.IntegrationTests/TesteDatabase.cs   |   6 [32m+[m[31m-[m
+ .../Api/Controllers/AuthControllerTests.cs         |  57 [32m++[m[31m-[m
+ .../Api/Controllers/EndpointAuthorizationTests.cs  | 397 [32m+++++++++++++++++++++[m
+ .../WebAuthnAuthenticationControllerTests.cs       |   2 [32m+[m[31m-[m
+ .../Api/Controllers/WebAuthnSessionTests.cs        |  39 [32m+[m[31m-[m
+ .../Api/Security/InMemorySessionRepository.cs      |  64 [32m++++[m
+ .../Security/SafeNetCookieAuthenticationTests.cs   |   5 [32m+[m[31m-[m
+ .../WebAuthnAuthenticationCompletionTests.cs       |   7 [32m+[m[31m-[m
+ .../SafeNetZKP.UnitTests.csproj                    |   3 [32m+[m[31m-[m
+ 26 files changed, 1148 insertions(+), 43 deletions(-)

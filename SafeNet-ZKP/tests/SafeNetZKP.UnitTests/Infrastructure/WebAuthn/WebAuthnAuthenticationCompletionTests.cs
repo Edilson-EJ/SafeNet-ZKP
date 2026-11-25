@@ -132,8 +132,12 @@ public class WebAuthnAuthenticationCompletionTests
         }
 
         public AuthenticatorAssertionRawResponse Response(AssertionOptions options, string? invalid = null, uint counter = 0)
+            => MakeResponse(options, _key, _id, UserId, _origin, counter, invalid);
+
+        internal static AuthenticatorAssertionRawResponse MakeResponse(AssertionOptions options, ECDsa key,
+            byte[] credentialId, Guid userId, string origin, uint counter, string? invalid = null)
         {
-            var id = invalid == "credential" ? RandomNumberGenerator.GetBytes(32) : _id;
+            var id = invalid == "credential" ? RandomNumberGenerator.GetBytes(32) : credentialId;
             var auth = new byte[37];
             SHA256.HashData(Encoding.UTF8.GetBytes(invalid == "rp" ? "wrong.example" : "localhost")).CopyTo(auth, 0);
             auth[32] = invalid == "presence" ? (byte)0x04 : invalid == "verification" ? (byte)0x01 : (byte)0x05;
@@ -142,12 +146,12 @@ public class WebAuthnAuthenticationCompletionTests
             {
                 type = "webauthn.get",
                 challenge = B64(invalid == "challenge" ? RandomNumberGenerator.GetBytes(32) : options.Challenge),
-                origin = invalid == "origin" ? "https://wrong.example" : _origin
+                origin = invalid == "origin" ? "https://wrong.example" : origin
             });
             var signed = auth.Concat(SHA256.HashData(client)).ToArray();
-            var signature = _key.SignData(signed, HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
+            var signature = key.SignData(signed, HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
             if (invalid == "signature") signature[^1] ^= 1;
-            var handle = invalid == "user" ? Guid.NewGuid().ToByteArray() : UserId.ToByteArray();
+            var handle = invalid == "user" ? Guid.NewGuid().ToByteArray() : userId.ToByteArray();
             var json = JsonSerializer.Serialize(new
             {
                 id = B64(id), rawId = B64(id), type = "public-key", clientExtensionResults = new { },

@@ -50,19 +50,23 @@ public sealed class InMemoryCaptivePortalGateway(TimeProvider clock)
         }
     }
 
-    public string IssueAssociationReference(ObservedNetworkConnection observation, TimeSpan lifetime)
+    public string IssueAssociationReference(ObservedNetworkConnection observation,
+        Guid verifiedSessionReference, TimeSpan lifetime)
     {
+        ArgumentOutOfRangeException.ThrowIfEqual(verifiedSessionReference, Guid.Empty);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(lifetime, TimeSpan.Zero);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(lifetime, TimeSpan.FromMinutes(1));
         lock (_sync)
         {
             var now = clock.GetUtcNow();
             var connection = GetTrustedConnection(observation);
-            if (connection.Association is not null || observation.ExpiresAt <= now)
+            if (connection.Association is not null || observation.ExpiresAt <= now ||
+                connection.PendingReference is { } pending && pending.ExpiresAt > now)
                 throw new InvalidOperationException("A conexão não pode iniciar uma associação.");
 
             var reference = RandomNumberGenerator.GetBytes(32);
-            connection.ReferenceHash = SHA256.HashData(reference);
-            connection.ReferenceExpiresAt = Earlier(now.Add(lifetime), observation.ExpiresAt);
+            connection.PendingReference = new(SHA256.HashData(reference), verifiedSessionReference,
+                Earlier(now.Add(lifetime), observation.ExpiresAt));
             return Convert.ToHexString(reference);
         }
     }
@@ -79,13 +83,13 @@ public sealed class InMemoryCaptivePortalGateway(TimeProvider clock)
             var connection = FindConnection(observation.Key);
             if (connection is null || !ReferenceEquals(connection.Observation, observation) ||
                 connection.Association is not null ||
-                connection.ReferenceExpiresAt <= now ||
                 request.AuthenticatedSessionExpiresAt <= now ||
-                connection.ReferenceHash is not { } hash ||
-                !CryptographicOperations.FixedTimeEquals(hash, SHA256.HashData(Convert.FromHexString(reference))))
+                connection.PendingReference is not { } pending || pending.ExpiresAt <= now ||
+                pending.SessionReference != request.AuthenticatedSessionReference ||
+                !CryptographicOperations.FixedTimeEquals(pending.Hash, SHA256.HashData(Convert.FromHexString(reference))))
                 return null;
 
-            connection.ReferenceHash = null;
+            connection.PendingReference = null;
             connection.Association = new NetworkAssociation(observation.Key, request.UserId,
                 request.AuthenticatedSessionReference, Earlier(request.AuthenticatedSessionExpiresAt, observation.ExpiresAt));
             return connection.Association;
@@ -229,12 +233,12 @@ public sealed class InMemoryCaptivePortalGateway(TimeProvider clock)
     {
         public ObservedNetworkConnection Observation { get; } = observation;
         public SimulatedAuthorizationBehavior Behavior { get; } = behavior;
-        public byte[]? ReferenceHash { get; set; }
-        public DateTimeOffset ReferenceExpiresAt { get; set; }
+        public PendingAssociationReference? PendingReference { get; set; }
         public NetworkAssociation? Association { get; set; }
         public long Revision { get; set; }
         public Guid? LastGrantId { get; set; }
     }
 
+    private sealed record PendingAssociationReference(byte[] Hash, Guid SessionReference, DateTimeOffset ExpiresAt);
     private sealed record Operation(object Request, GatewayOperationResult Result);
 }

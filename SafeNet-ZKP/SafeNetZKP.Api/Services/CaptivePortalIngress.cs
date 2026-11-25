@@ -24,13 +24,13 @@ public sealed class CaptivePortalIngress(TimeProvider clock) : IDisposable
         {
             if (_cache.TryGetValue<StagedObservation>(key, out _))
                 throw new InvalidOperationException("A gateway reference is already staged.");
-            Store(key, new StagedObservation(Hash(verifiedSessionId), observation), expiresAt);
+            Store(key, new StagedObservation(Hash(verifiedSessionId), observation, expiresAt), expiresAt);
         }
     }
 
     internal ObservedNetworkConnection? FindObservation(string sessionId, string reference) =>
         IsReference(reference) && _cache.Get<StagedObservation>(Hash(reference)) is { } staged &&
-        staged.SessionHash == Hash(sessionId) ? staged.Observation : null;
+        staged.ExpiresAt > clock.GetUtcNow() && staged.SessionHash == Hash(sessionId) ? staged.Observation : null;
 
     internal void CompleteAssociation(string sessionId, string reference, PersistentNetworkAccessBinding binding)
     {
@@ -39,7 +39,8 @@ public sealed class CaptivePortalIngress(TimeProvider clock) : IDisposable
     }
 
     internal PersistentNetworkAccessBinding? FindBinding(string sessionId, Guid id) =>
-        _cache.Get<PersistentNetworkAccessBinding>((Hash(sessionId), id));
+        _cache.Get<PersistentNetworkAccessBinding>((Hash(sessionId), id)) is { } binding &&
+        binding.ExpiresAt > clock.GetUtcNow() ? binding : null;
 
     private void Store<T>(object key, T value, DateTimeOffset expiresAt) where T : class
     {
@@ -58,5 +59,6 @@ public sealed class CaptivePortalIngress(TimeProvider clock) : IDisposable
 
     public void Dispose() => _cache.Dispose();
 
-    private sealed record StagedObservation(string SessionHash, ObservedNetworkConnection Observation);
+    private sealed record StagedObservation(string SessionHash, ObservedNetworkConnection Observation,
+        DateTimeOffset ExpiresAt);
 }

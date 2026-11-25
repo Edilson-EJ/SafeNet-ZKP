@@ -34,9 +34,15 @@ public sealed class AuthenticatedSessionService(
         var expiration = await repository.GetActiveExpirationAsync(hash, userId,
             clock.GetUtcNow().UtcDateTime, cancellationToken);
         return expiration is { } expiresAt
-            ? (new Guid(hash.AsSpan(0, 16)), new DateTimeOffset(expiresAt, TimeSpan.Zero), hash)
+            ? (ToAssociationReference(hash), new DateTimeOffset(expiresAt, TimeSpan.Zero), hash)
             : null;
     }
+
+    // Correlation only. Trusted ingress must already have verified the session and the connection.
+    public static Guid GetAssociationReference(string verifiedSessionId) =>
+        ToAssociationReference(SHA256.HashData(Convert.FromHexString(verifiedSessionId)));
+
+    private static Guid ToAssociationReference(byte[] sessionHash) => new(sessionHash.AsSpan(0, 16));
 
     public Task RevokeAsync(string id, Guid userId, CancellationToken cancellationToken) =>
         repository.RevokeAsync(SHA256.HashData(Convert.FromHexString(id)), userId,

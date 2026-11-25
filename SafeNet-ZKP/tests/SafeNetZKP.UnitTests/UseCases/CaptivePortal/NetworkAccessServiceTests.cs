@@ -17,7 +17,7 @@ public sealed class NetworkAccessServiceTests
     {
         var lab = new Lab();
         var caller = await lab.SignInAsync();
-        var (observation, reference) = lab.Connect();
+        var (observation, reference) = lab.Connect(caller);
         var binding = await lab.AssociateAsync(caller, observation, reference);
         Assert.Null(await lab.Service.AssociateAsync(caller.Context, observation, reference, Ct));
 
@@ -41,6 +41,7 @@ public sealed class NetworkAccessServiceTests
     {
         var lab = new Lab();
         var caller = await lab.SignInAsync();
+        var (observation, reference) = lab.Connect(caller);
         if (state == "expired")
             lab.Clock.Advance(AuthenticatedSessionService.Lifetime);
         if (state == "revoked")
@@ -55,9 +56,11 @@ public sealed class NetworkAccessServiceTests
             _ => caller.Context
         };
 
-        var (observation, reference) = lab.Connect();
         Assert.Null(await lab.Service.AssociateAsync(context, observation, reference, Ct));
-        await lab.AssociateAsync(await lab.SignInAsync(), observation, reference);
+        var replacement = await lab.SignInAsync(caller.UserId);
+        Assert.Null(await lab.Service.AssociateAsync(replacement.Context, observation, reference, Ct));
+        if (state is not ("expired" or "revoked"))
+            await lab.AssociateAsync(caller, observation, reference);
     }
 
     [Fact]
@@ -65,14 +68,15 @@ public sealed class NetworkAccessServiceTests
     {
         var lab = new Lab();
         var caller = await lab.SignInAsync();
-        var (observation, reference) = lab.Connect();
-        var (_, unrelatedReference) = lab.Connect();
+        var (observation, reference) = lab.Connect(caller);
+        var (_, unrelatedReference) = lab.Connect(caller);
         Assert.Null(await lab.Service.AssociateAsync(caller.Context, observation, unrelatedReference, Ct));
         Assert.Null(await lab.Service.AssociateAsync(caller.Context, observation with { }, reference, Ct));
         lab.Clock.Advance(TimeSpan.FromMinutes(1));
         Assert.Null(await lab.Service.AssociateAsync(caller.Context, observation, reference, Ct));
         await lab.AssociateAsync(caller, observation,
-            lab.Gateway.IssueAssociationReference(observation, TimeSpan.FromMinutes(1)));
+            lab.Gateway.IssueAssociationReference(observation,
+                AuthenticatedSessionService.GetAssociationReference(caller.Identifier), TimeSpan.FromMinutes(1)));
     }
 
     [Fact]
@@ -81,11 +85,12 @@ public sealed class NetworkAccessServiceTests
         var lab = new Lab();
         var first = await lab.SignInAsync();
         var second = await lab.SignInAsync();
-        var (observation, reference) = lab.Connect();
+        var (observation, reference) = lab.Connect(first);
         var results = await Task.WhenAll(
             Task.Run(() => lab.Service.AssociateAsync(first.Context, observation, reference, Ct)),
             Task.Run(() => lab.Service.AssociateAsync(second.Context, observation, reference, Ct)));
-        Assert.Single(results.OfType<NetworkAccessBinding>());
+        Assert.NotNull(results[0]);
+        Assert.Null(results[1]);
     }
 
     [Fact]
@@ -206,7 +211,7 @@ public sealed class NetworkAccessServiceTests
     {
         var lab = new Lab();
         var caller = await lab.SignInAsync();
-        var (observation, reference) = lab.Connect();
+        var (observation, reference) = lab.Connect(caller);
         var binding = await lab.AssociateAsync(caller, observation, reference);
         var shortAccess = lab.Prepare(binding);
         await lab.Service.AuthorizeAsync(caller.Context, shortAccess, Ct);
@@ -273,11 +278,12 @@ public sealed class NetworkAccessServiceTests
             return new Caller(id, session.Id, session.ExpiresAt);
         }
 
-        public (ObservedNetworkConnection Observation, string Reference) Connect(
+        public (ObservedNetworkConnection Observation, string Reference) Connect(Caller caller,
             SimulatedAuthorizationBehavior behavior = SimulatedAuthorizationBehavior.Confirm)
         {
             var observation = Gateway.ObserveConnection(TimeSpan.FromHours(1), behavior);
-            return (observation, Gateway.IssueAssociationReference(observation, TimeSpan.FromMinutes(1)));
+            return (observation, Gateway.IssueAssociationReference(observation,
+                AuthenticatedSessionService.GetAssociationReference(caller.Identifier), TimeSpan.FromMinutes(1)));
         }
 
         public async Task<NetworkAccessBinding> AssociateAsync(Caller caller,
@@ -287,7 +293,7 @@ public sealed class NetworkAccessServiceTests
         public async Task<NetworkAccessAuthorization> ConnectAndPrepareAsync(Caller caller,
             SimulatedAuthorizationBehavior behavior = SimulatedAuthorizationBehavior.Confirm)
         {
-            var (observation, reference) = Connect(behavior);
+            var (observation, reference) = Connect(caller, behavior);
             return Prepare(await AssociateAsync(caller, observation, reference));
         }
 

@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Compile Include="..\SafeNetZKP.IntegrationTests\TesteDatabase.cs" Link="TestDatabase.cs" />
   </ItemGroup>
 
   <ItemGroup>

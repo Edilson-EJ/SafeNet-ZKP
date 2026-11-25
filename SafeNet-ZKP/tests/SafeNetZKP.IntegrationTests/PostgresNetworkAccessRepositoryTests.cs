@@ -72,7 +72,8 @@ public sealed class PostgresNetworkAccessRepositoryTests
         Assert.False(await first.Sessions.IsActiveAsync(owner.Identifier, owner.UserId, Ct));
         Assert.Null(await lab.AuthorizeAsync(first, owner, binding, Guid.NewGuid()));
         var observation = lab.Gateway.ObserveConnection(TimeSpan.FromMinutes(15));
-        var reference = lab.Gateway.IssueAssociationReference(observation, TimeSpan.FromMinutes(1));
+        var reference = lab.Gateway.IssueAssociationReference(observation,
+            AuthenticatedSessionService.GetAssociationReference(owner.Identifier), TimeSpan.FromMinutes(1));
         Assert.Null(await first.Access.AssociateAsync(owner.Context, observation, reference, Ct));
 
         await using var restarted = lab.Open();
@@ -155,7 +156,8 @@ public sealed class PostgresNetworkAccessRepositoryTests
             SimulatedAuthorizationBehavior behavior = SimulatedAuthorizationBehavior.Confirm)
         {
             var observation = Gateway.ObserveConnection(TimeSpan.FromMinutes(30), behavior);
-            var reference = Gateway.IssueAssociationReference(observation, TimeSpan.FromMinutes(1));
+            var reference = Gateway.IssueAssociationReference(observation,
+                AuthenticatedSessionService.GetAssociationReference(caller.Identifier), TimeSpan.FromMinutes(1));
             return Assert.IsType<PersistentNetworkAccessBinding>(
                 await scope.Access.AssociateAsync(caller.Context, observation, reference, Ct));
         }

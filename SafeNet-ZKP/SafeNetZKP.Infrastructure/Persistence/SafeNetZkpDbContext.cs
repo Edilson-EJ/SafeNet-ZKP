@@ -17,6 +17,7 @@ public class SafeNetZkpDbContext : DbContext
     public DbSet<AuthenticatedSession> AuthenticatedSessions => Set<AuthenticatedSession>();
     public DbSet<NetworkAccessAssociation> NetworkAccessAssociations => Set<NetworkAccessAssociation>();
     public DbSet<NetworkAccessEntry> NetworkAccessOperations => Set<NetworkAccessEntry>();
+    public DbSet<GatewayObservation> GatewayObservations => Set<GatewayObservation>();
 
     public DbSet<WebAuthnCredential> WebAuthnCredentials
         => Set<WebAuthnCredential>();
@@ -25,6 +26,12 @@ public class SafeNetZkpDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         ConfigureNetworkAccess(modelBuilder);
+        modelBuilder.Entity<GatewayObservation>(entity =>
+        {
+            entity.HasKey(observation => new { observation.GatewayId, observation.Nonce });
+            entity.Property(observation => observation.Nonce).HasMaxLength(32);
+            entity.HasIndex(observation => observation.ExpiresAt);
+        });
 
         modelBuilder.Entity<AuthenticatedSession>(entity =>
         {

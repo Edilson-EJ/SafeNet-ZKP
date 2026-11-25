@@ -1,6 +1,7 @@
 
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SafeNetZKP.Api.Controllers;
 using SafeNetZKP.Api.ExceptionHandlers;
@@ -138,6 +139,8 @@ builder.Services.AddScoped<INetworkAccessRepository, PostgresNetworkAccessReposi
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddSingleton<CaptivePortalIngress>();
+    builder.Services.AddSingleton<GatewayObservationAuthentication>();
+    builder.Services.AddScoped<IGatewayObservationRepository, PostgresGatewayObservationRepository>();
     builder.Services.AddSingleton<InMemoryCaptivePortalGateway>();
     builder.Services.AddSingleton<ICaptivePortalGateway>(provider =>
         provider.GetRequiredService<InMemoryCaptivePortalGateway>());
@@ -184,6 +187,13 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode =
         StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("gateway-observations", limiter =>
+    {
+        limiter.PermitLimit = 120;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
 
     options.AddPolicy("captive-portal", context =>
         RateLimitPartition.GetFixedWindowLimiter(

@@ -14,6 +14,7 @@ internal sealed class InMemorySessionRepository : IAuthenticatedSessionRepositor
     public IEnumerable<AuthenticatedSession> Sessions => _sessions.Values.Select(value => value.Session);
     public bool FailWrites { get; set; }
     public bool FailReads { get; set; }
+    public Action<Guid, byte[]>? OnRevoked { get; init; }
 
     public Task AddAsync(AuthenticatedSession session, CancellationToken cancellationToken)
     {
@@ -40,8 +41,9 @@ internal sealed class InMemorySessionRepository : IAuthenticatedSessionRepositor
         if (FailWrites)
             throw new InvalidOperationException("Test session write failed.");
         var key = Convert.ToHexString(idHash);
-        if (_sessions.TryGetValue(key, out var record) && record.Session.UserId == userId && record.RevokedAt is null)
-            _sessions.TryUpdate(key, (record.Session, now), record);
+        if (_sessions.TryGetValue(key, out var record) && record.Session.UserId == userId && record.RevokedAt is null &&
+            _sessions.TryUpdate(key, (record.Session, now), record))
+            OnRevoked?.Invoke(userId, idHash);
         return Task.CompletedTask;
     }
 

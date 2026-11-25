@@ -8,6 +8,15 @@ public static class TestDatabase
 {
     public static SafeNetZkpDbContext CreateContext()
     {
+        var options = new DbContextOptionsBuilder<SafeNetZkpDbContext>()
+            .UseNpgsql(GetValidatedConnectionString())
+            .Options;
+
+        return new SafeNetZkpDbContext(options);
+    }
+
+    public static string GetValidatedConnectionString()
+    {
         var connectionString = Environment.GetEnvironmentVariable(
             "SAFENET_TEST_CONNECTION_STRING");
 
@@ -27,10 +36,6 @@ public static class TestDatabase
                 "Os testes exigem safenet_zkp_test em 127.0.0.1:5433.");
         }
 
-        var options = new DbContextOptionsBuilder<SafeNetZkpDbContext>()
-            .UseNpgsql(connectionString)
-            .Options;
-
-        return new SafeNetZkpDbContext(options);
+        return connectionString;
     }
 }

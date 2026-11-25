@@ -162,6 +162,59 @@ Nas escritas de autorização e revogação, `202` com `Location` indica estado 
 
 Na etapa 10.5, a interface pode consumir os estados e seguir `Location` para reconciliação. Deve diferenciar estado histórico e confirmado, mostrar que o logout web e o encerramento de rede são operações distintas, e manter as ações de associação bloqueadas enquanto não houver ingresso confiável configurado.
 
+## Canal autenticado do gateway na etapa 11.2
+
+`POST /api/captive-portal/gateway/observations` recebe observações de laboratório por HTTPS em Development. A credencial é uma chave HMAC-SHA256 de 32 bytes aleatórios por gateway e por implantação. O gateway autentica o servidor pelo certificado TLS. Configure o valor Base64 por provedor externo à árvore de código, como a variável `CaptivePortal__GatewayKeys__<uuid-do-gateway>`. Use UUID canônico em minúsculas. A presença de uma chave válida autoriza o gateway a reportar dentro do próprio espaço de conexões. Retirar a chave da configuração e recarregar o processo desabilita esse gateway. A proteção da chave, a rotação coordenada e o relógio sincronizado são responsabilidades do laboratório. Desative a captura de cabeçalhos e corpos dessa rota em proxies e ferramentas de diagnóstico.
+
+Envie `Content-Type: application/json`, sem query string ou compressão. O corpo é JSON UTF-8, com até 2048 bytes, contendo exatamente `gatewayId` e `connectionId` como UUIDs e `generation` como inteiro positivo de 64 bits. A identidade da conexão é a tupla gateway, conexão e geração. A API exige que o gateway do corpo seja o mesmo autenticado pelo cabeçalho. IDs de conexão de gateways distintos pertencem a espaços independentes.
+
+| Cabeçalho | Valor |
+|---|---|
+| `X-SafeNet-Gateway` | UUID do gateway, formato D em minúsculas |
+| `X-SafeNet-Timestamp` | Segundos Unix em decimal canônico, sem sinal ou zeros à esquerda. Tolerância de 60 segundos em cada direção |
+| `X-SafeNet-Nonce` | 16 bytes aleatórios em 32 dígitos hexadecimais minúsculos. Gere um novo para cada mensagem |
+| `X-SafeNet-Signature` | HMAC-SHA256 de 32 bytes em 64 dígitos hexadecimais minúsculos |
+
+Calcule o SHA-256 sobre os bytes exatos transmitidos no corpo e represente o resultado em hexadecimal minúsculo. A entrada ASCII do HMAC contém as seguintes linhas separadas por LF, sem LF final. Substitua os quatro campos entre chaves pelos valores reais.
+
+```text
+safenet-gateway-observation-v1
+POST
+/api/captive-portal/gateway/observations
+{gateway}
+{timestamp}
+{nonce}
+{sha256-do-corpo}
+```
+
+`204` confirma a gravação da observação, cuja validade termina 120 segundos após o timestamp assinado. `401` indica assinatura ou metadados de autenticação inválidos, `403` indica HTTP sem TLS ou identidade do corpo divergente, `409` indica nonce já gravado e `503` indica indisponibilidade do armazenamento. O limite compartilhado da rota é de 120 requisições por minuto por instância de API e pode devolver `429`. Uma perda da resposta pode deixar a gravação já confirmada no banco. Reenviar os mesmos bytes e cabeçalhos dentro da janela preserva a proteção contra duplicação.
+
+A migration `AddGatewayObservations` deve ser aplicada explicitamente no banco do ambiente autorizado. A chave primária em `(GatewayId, Nonce)` e o `INSERT ... ON CONFLICT DO NOTHING` reservam o nonce e gravam a observação juntos. Essa proteção vale entre processos e após reinício. A tabela não guarda chaves, assinaturas ou cookies. O índice de expiração permite manutenção posterior. Nesta etapa a limpeza é manual, com a ingestão parada e requisições encerradas. Remova apenas registros vencidos com margem para desvio ou correção do relógio. Cada gateway com uma chave comprometida pode reportar conexões em seu próprio espaço até a revogação da chave.
+
+### Prova de vínculo para a associação futura
+
+A gravação autenticada não produz a capacidade viva consumida por `ICaptivePortalAssociationGateway`. Antes de chamar `CaptivePortalIngress.StageObservation`, uma integração futura deve identificar a conexão e a geração pelo ingresso confiável da rede. Uma opção é um proxy de ingresso autenticado perante o backend, com identidade vinculada ao gateway. O gateway associa o tráfego daquele navegador à conexão por contexto controlado do acesso à rede e atesta ao backend um desafio curto que o backend vinculou à sessão WebAuthn verificada. O backend exige a mesma identidade de gateway, mesma conexão e geração, observação vigente e desafio ainda válido. O mecanismo depende de o equipamento distinguir conexões no ingresso, inclusive quando clientes compartilham endereço. Um desafio copiado ou um cabeçalho que o cliente possa enviar não prova a origem.
+
+Depois de obter essa prova, o adaptador deve emitir uma referência aleatória de 32 bytes, armazenada como hash e ligada à tupla da conexão, à sessão web verificada e à finalidade de associação. A validade deve ser limitada a um minuto e aos prazos da sessão e da observação. O adaptador entrega a capacidade viva ao `CaptivePortalIngress` e consome a referência atomicamente por `ICaptivePortalAssociationGateway`. Os serviços existentes continuam responsáveis pela reserva, autorização, consulta e revogação. Nesta etapa a rota de observações não abre nenhuma associação para navegadores. O fluxo de associação em Development continua disponível somente para observações já preparadas por código interno confiável.
+
+O pipeline HTTP exercita assinatura válida, gateway desconhecido, chave errada, corpo adulterado, timestamps fora da janela, replay sequencial e concorrente, tentativa de reivindicar outro gateway, HTTP sem TLS, falha do repositório, fabricação de associação por navegador e ausência da rota em Production. O teste PostgreSQL do repositório usa duas conexões para verificar a reserva concorrente quando o banco isolado está disponível.
+
+## Vínculo de laboratório na etapa 11.3
+
+O simulador representa a confirmação de origem pela entrega da instância viva da observação ao ingresso interno confiável. O produtor de laboratório seleciona a sessão web previamente validada e emite a referência para o correlator dessa sessão. O correlator é derivado do hash do identificador interno e serve apenas para comparar o vínculo. A autenticação do usuário continua usando o cookie WebAuthn e o registro ativo da sessão. A autenticação HMAC confirma a origem do relato do gateway. Os dois controles têm funções independentes.
+
+O simulador gera 32 bytes aleatórios e guarda apenas o hash, o correlator da sessão e o vencimento, limitado a um minuto e ao prazo da observação. A referência fica no estado da conexão e da geração observadas. Um único bloqueio protege emissão, consumo e reconexão. Uma referência em vigor impede nova emissão para a mesma geração. No consumo, o gateway compara a observação original, a geração, o hash e o correlator da sessão. O backend valida a sessão ativa antes e depois da chamada ao gateway. O ingresso ainda verifica a sessão e o prazo ao buscar a observação preparada. Um logout impede o uso do vínculo pela sessão encerrada. Uma sessão nova, inclusive do mesmo usuário em outro navegador, exige nova prova e referência. Uma reconexão invalida referências e concessões da geração anterior.
+
+O PostgreSQL já registra a associação concluída com unicidade por gateway, conexão e geração. Na gravação, o repositório bloqueia a linha da sessão e verifica sua vigência enquanto disputa o mesmo bloqueio usado pelo logout. A prova e as referências pendentes de laboratório permanecem em memória. Após reiniciar a API, o ingresso vazio exige nova confirmação confiável para preparar outra observação. Consultas e revogações de operações persistidas continuam pelo fluxo existente. Uma falha após o consumo no simulador deixa a referência consumida. A recuperação exige um novo fluxo confiável, eventualmente com uma nova geração. Esse desenho impede reuso e aceita a perda de disponibilidade da tentativa quando consumo e persistência não podem ser confirmados juntos.
+
+### Entrega ao navegador e confirmação do gateway real
+
+Um redirecionamento controlado pode encaminhar o navegador à página HTTPS do portal. Para vincular a navegação, o backend deve criar um desafio com prazo curto, ligado à sessão web verificada. O ingresso autenticado deve atestar a tupla da conexão para a mesma requisição de resgate em que o backend valida a sessão e o desafio. O gateway precisa identificar a conexão e a geração a partir do contexto da rede que controla, inclusive entre clientes que compartilham endereço. Uma confirmação separada de que alguém apresentou o desafio permitiria retransmissão. O backend deve comparar a autenticação do ingresso, a requisição e a observação vigente, e consumir o desafio uma única vez. Um proxy de laboratório que termine TLS para esse fim fará parte da fronteira de confiança da aplicação. Ele deve descartar metadados de ingresso fornecidos pelo cliente e encaminhar a informação verificada por um canal autenticado ao backend.
+
+Só depois dessa confirmação o adaptador pode emitir a referência de associação para a sessão vinculada. Uma entrega possível é em resposta HTTPS de mesma origem sem cache, mantendo a referência fora de URLs, histórico, logs e cabeçalhos Referer. A submissão continua pelo POST autenticado e protegido contra CSRF. Segredos HMAC ficam no provedor de configuração do gateway e do backend. O navegador recebe apenas a referência de uso único. O vínculo atesta o ingresso observado durante o desafio, com as garantias que o equipamento oferecer. Um redirecionamento ou uma referência transferível por si só deixam a origem sem confirmação.
+
+O endpoint de relatos HMAC permanece separado do ingresso de associação. A etapa não adiciona produtor HTTP para referências de associação. Os testes internos e HTTP exercitam a sessão correta, referências fabricadas, expiradas e repetidas, concorrência entre sessões, isolamento entre gateways, reconexão, logout durante associação, falha de escrita e perda da referência após reinício mesmo com uma sessão ainda válida.
+
 ## Padrões e integração openNDS
 
 | Referência | Escopo e implicação |
