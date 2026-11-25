@@ -215,6 +215,71 @@ Só depois dessa confirmação o adaptador pode emitir a referência de associa�
 
 O endpoint de relatos HMAC permanece separado do ingresso de associação. A etapa não adiciona produtor HTTP para referências de associação. Os testes internos e HTTP exercitam a sessão correta, referências fabricadas, expiradas e repetidas, concorrência entre sessões, isolamento entre gateways, reconexão, logout durante associação, falha de escrita e perda da referência após reinício mesmo com uma sessão ainda válida.
 
+## Resiliência, auditoria e retenção na etapa 11.4
+
+- **Autorização.** Uma reserva fica em `Pending` até haver resultado. Uma falha de transporte ou de correlação produz `Indeterminate`. Se o gateway perder o estado, uma consulta não reutiliza a confirmação anterior. Uma autorização já confirmada continua em modo de consulta mesmo após ser marcada indeterminada. A repetição de uma autorização ainda sem confirmação reutiliza a mesma chave, a mesma operação, a mesma concessão e a mesma revisão, somente enquanto o prazo de envio e o vínculo vivo permitem. O backend não reexecuta automaticamente inscrições, login, logout ou transações completas.
+- **Revogação.** O logout grava a intenção na mesma transação da sessão. O worker consulta primeiro a operação de revogação, pode enviar uma vez por passagem com o mesmo ID e revisão e usa até dois segundos de espera cooperativa por item entre consulta e envio. O adaptador deve respeitar cancelamento e prazo. A fila processa até 32 por lote, com intervalo de cinco segundos. Falhas de banco são retomadas em outro escopo, em lote posterior. Se o gateway confirmar e o banco falhar antes de salvar o resultado, a consulta seguinte pode recuperar a confirmação. Uma resposta atrasada ou concorrente não pode substituir o estado terminal persistido.
+- **Divergência e expiração.** A perda do estado simulado deixa a concessão ou revogação indeterminada até nova evidência ou o prazo máximo de acesso. `Revoked` exige resposta correlacionada. `Expired` indica que o limite local foi alcançado. Para um adaptador real, a garantia de fim do acesso depende de o gateway aplicar esse limite mesmo offline, manter o histórico idempotente e expor uma consulta autoritativa após reinício. A lista de concessões expõe o último estado conhecido. A consulta individual reconcilia o estado atual.
+- **Auditoria.** Os eventos estruturados usam controller, ação, código HTTP, estado de rede quando disponível e identificador de rastreamento da requisição. No gateway, `401` agrupa falhas de autenticação e `409` distingue replay. No WebAuthn, as ações de início e conclusão distinguem cadastro e login. O worker registra início, indisponibilidade do armazenamento e contagens por resultado no lote. O handler global registra somente o tipo da exceção e a correlação. Mantenha desativada a coleta de corpos, cabeçalhos e parâmetros sensíveis por proxies, EF Core e exportadores.
+
+### Política proposta de retenção
+
+- **Provas transitórias.** Desafios WebAuthn, tickets de inscrição e referências de associação expiram nos prazos da emissão. O cache de ingresso é volátil. Reinícios exigem nova prova para referências pendentes.
+- **Sessões.** Consulte sempre o vencimento e a revogação. Como ponto de partida de laboratório, mantenha metadados de sessões encerradas por até sete dias. Antes da remoção em lotes, confira a existência da intenção durável para concessões ainda reconciliáveis. Preserve a fila e as associações referenciadas. Não arquive hashes de sessão em logs.
+- **Observações e nonces.** Preserve o registro do nonce pelo menos enquanto a mensagem puder ser aceita, incluindo desvio de relógio e requisições em trânsito. Proposta de laboratório de sete dias após o vencimento, com limpeza manual enquanto a ingestão estiver parada e drenada. Preserve somente a trilha mínima necessária para investigações autorizadas.
+- **Operações e vínculos.** Preserve indefinidamente `Pending` e `Indeterminate` que ainda precisem de reconciliação. Preserve também casos cuja expiração física ainda não esteja comprovada pelo contrato do gateway. Para registros terminais elegíveis, proponha 30 dias a partir da última transição, com retenção adicional para incidentes e exclusão em lotes na ordem operações, associações e sessões elegíveis. Antes de automatizar, valide a seleção em modo somente leitura e teste com um banco isolado. Nenhuma exclusão automática foi introduzida.
+- **Chaves.** Antes do piloto físico, defina inventário e custódia por gateway e ambiente, rotação coordenada, revogação em incidente e descarte de material antigo. Defina também quais operadores podem acessar a trilha e por quanto tempo ela permanece disponível.
+
+## Revisão final de chaves e retenção na etapa 11.5
+
+- **Provisionamento e revogação do gateway.** Use material aleatório exclusivo por identidade e ambiente, em Base64 canônico. A API rejeita assinaturas de identidades que compartilham a mesma chave configurada. Para desabilitar um gateway, remova sua chave do provedor efetivo e reinicie as instâncias. Confirme que nenhuma configuração de menor precedência reintroduz a entrada. A remoção impede novas observações autenticadas e mantém o histórico e os nonces para auditoria. Em caso de incidente, revise observações e operações relacionadas e trate suas concessões pelo fluxo de revogação apropriado.
+- **Rotação.** O protocolo atual admite uma chave por identidade. No laboratório, pause o emissor, substitua a chave nos dois lados, reinicie as instâncias com a configuração nova e verifique autenticação com a chave nova e rejeição da anterior. Preserve os nonces durante a rotação. Se houver necessidade de sobreposição, evolua o protocolo para assinar também um identificador de chave, com janela curta de dupla aceitação e retirada imediata em incidentes. Mantenha o nonce único por gateway durante a janela.
+- **Data Protection.** As chaves que protegem cookies e CSRF são independentes das chaves HMAC. O host usa o armazenamento padrão do ASP.NET Core. Confirme o perfil, o isolamento e a proteção das chaves no ambiente real de laboratório antes de depender da continuidade de cookies. Para implantações separadas ou múltiplas instâncias, planeje um conjunto de chaves persistente por ambiente, acesso restrito, proteção em repouso e recuperação controlada. O reinício com chaves estáveis ainda exige que a sessão no banco esteja ativa. Desafios WebAuthn e provas de ingresso pendentes continuam voláteis.
+- **Retenção.** Sete dias para sessões encerradas e observações vencidas e 30 dias para operações terminais são pontos de partida operacionais, condicionados à finalidade de auditoria. Para sessões, conte a partir da revogação ou expiração que as encerrou. Para observações e nonces, conte a partir do vencimento e preserve a margem de relógio e tráfego em trânsito. Para operações, conte a partir da última transição e preserve linhas relacionadas a revogações ainda reconciliáveis, a incidentes e a expirações sem garantia física. Antes de qualquer rotina de exclusão, valide a consulta de elegibilidade com dados de teste e revise as dependências e a janela de idempotência. Nenhuma rotina de limpeza é executada pela API.
+
+## Validação operacional na etapa 11.6
+
+O nome da aplicação no Data Protection inclui o ambiente e a raiz de conteúdo. Preserve ambos e o conjunto de chaves nos reinícios de uma implantação. Use repositórios de chaves e identidades de serviço separados entre implantações, inclusive entre dois laboratórios no mesmo ambiente ASP.NET. O nome da aplicação não impede um operador com acesso a todo o material de chave de reproduzir esse nome em outro processo.
+
+A troca de chaves HMAC mantém a identidade do gateway e a chave única de replay `(GatewayId, Nonce)`. Reassinar uma mensagem já aceita com a chave nova não libera o nonce. Desabilitar a chave impede novas observações autenticadas. O histórico e as operações persistidas continuam disponíveis aos seus fluxos de consulta e revogação. A retirada da chave de observação não confirma revogação de acesso. Em incidente, trate concessões existentes e use confirmação independente do gateway. A separação de segredos entre instalações depende do provisionamento. Production mantém a rota experimental ausente.
+
+### Diagnóstico somente leitura de retenção
+
+Use uma conexão já validada para `safenet_zkp_test` em `127.0.0.1:5433` e um papel somente leitura. O resumo conta registros potencialmente elegíveis e omite identificadores. O esquema atual não contém marcação de investigação. Portanto, nenhuma contagem autoriza remoção. Cruze com os registros de incidentes antes de qualquer uso da seleção. As consultas são conservadoras e preservam observações e sessões ligadas a uma associação. Para avaliar a ação operacional sobre nonces, pause a ingestão em todas as instâncias, drene requisições em trânsito, verifique o relógio e repita o diagnóstico. A janela de sete dias pressupõe relógios estáveis e não autoriza purgar registros recuperados após alteração significativa do relógio.
+
+```sql
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
+
+SELECT count(*) AS sessoes_encerradas_sem_vinculo
+FROM "AuthenticatedSessions" AS s
+WHERE LEAST(s."ExpiresAt", COALESCE(s."RevokedAt", s."ExpiresAt"))
+      < CURRENT_TIMESTAMP - interval '7 days'
+  AND NOT EXISTS (
+      SELECT 1 FROM "NetworkAccessAssociations" AS a
+      WHERE a."UserId" = s."UserId" AND a."SessionHash" = s."IdHash"
+  );
+
+SELECT count(*) AS observacoes_e_nonces_vencidos_sem_vinculo
+FROM "GatewayObservations" AS g
+WHERE g."ExpiresAt" < CURRENT_TIMESTAMP - interval '7 days'
+  AND NOT EXISTS (
+      SELECT 1 FROM "NetworkAccessAssociations" AS a
+      WHERE (a."GatewayId", a."ConnectionId", a."Generation")
+          = (g."GatewayId", g."ConnectionId", g."Generation")
+  );
+
+-- NetworkAccessState persistido. 2 = Denied, 5 = Revoked.
+-- Inclui recusas sem concessão e revogações confirmadas. Exclui Expired local.
+SELECT count(*) AS operacoes_terminais_com_evidencia
+FROM "NetworkAccessOperations" AS o
+WHERE o."UpdatedAt" < CURRENT_TIMESTAMP - interval '30 days'
+  AND o."AccessUntil" < CURRENT_TIMESTAMP
+  AND ((o."State" = 2 AND o."GrantState" IS NULL AND o."RevocationId" IS NULL)
+       OR o."RevocationState" = 5);
+
+ROLLBACK;
+```
+
 ## Padrões e integração openNDS
 
 | Referência | Escopo e implicação |

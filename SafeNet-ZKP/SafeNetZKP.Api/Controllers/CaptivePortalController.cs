@@ -113,7 +113,11 @@ public sealed class CaptivePortalController(
         try
         {
             var result = await action(new NetworkAccessCaller(currentUser, sessionId), sessionId);
-            return await sessions.IsActiveAsync(sessionId, userId, ct) ? result : Unauthorized();
+            if (!await sessions.IsActiveAsync(sessionId, userId, ct))
+                return Unauthorized();
+            if (result is ObjectResult { Value: NetworkOperationResponse operation })
+                HttpContext.Items[SecurityOutcomeLogging.NetworkState] = operation.State;
+            return result;
         }
         catch (Exception exception) when (!ct.IsCancellationRequested &&
             (exception is DbException or GatewayCommunicationException or TimeoutException ||

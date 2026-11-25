@@ -68,7 +68,8 @@ public sealed class PersistentNetworkAccessService(
         {
             if (ClosedOrRevoking(entry, clock.GetUtcNow()) is { } closed)
                 return closed;
-            if (entry.State == NetworkAccessState.Authorized || entry.ValidUntil <= clock.GetUtcNow())
+            if (entry.State == NetworkAccessState.Authorized || entry.GrantState == NetworkAccessState.Authorized ||
+                entry.ValidUntil <= clock.GetUtcNow())
                 return await GetOperationAsync(caller, entry.Id, ct);
         }
 
@@ -133,8 +134,8 @@ public sealed class PersistentNetworkAccessService(
             persisted.ConfirmedUntil > clock.GetUtcNow())
             return result;
 
-        return new(entry.Id, result.State is NetworkAccessState.Denied or NetworkAccessState.Pending
-            ? result.State : NetworkAccessState.Indeterminate);
+        return new(entry.Id, result.State == NetworkAccessState.Pending && persisted.State == NetworkAccessState.Pending
+            ? NetworkAccessState.Pending : NetworkAccessState.Indeterminate);
     }
 
     private async Task<SessionOwner?> ResolveOwnerAsync(NetworkAccessCaller caller, CancellationToken ct)

@@ -29,7 +29,8 @@ public sealed class GatewayObservationAuthentication(IConfiguration configuratio
         if (seconds < now - ClockSkewSeconds || seconds > now + ClockSkewSeconds)
             return false;
 
-        var secret = configuration[$"CaptivePortal:GatewayKeys:{gateway}"];
+        var configuredKeys = configuration.GetSection("CaptivePortal:GatewayKeys");
+        var secret = configuredKeys[gateway!];
         var key = new byte[32];
         try
         {
@@ -37,11 +38,22 @@ public sealed class GatewayObservationAuthentication(IConfiguration configuratio
                 !Convert.TryFromBase64String(secret, key, out var written) || written != key.Length)
                 return false;
 
+            Span<char> canonicalKey = stackalloc char[44];
+            Convert.TryToBase64Chars(key, canonicalKey, out _);
+            var canonical = secret.AsSpan().SequenceEqual(canonicalKey);
+            canonicalKey.Clear();
+            if (!canonical)
+                return false;
+
             var bodyHash = Convert.ToHexStringLower(SHA256.HashData(body));
             var payload = Encoding.ASCII.GetBytes(
                 $"safenet-gateway-observation-v1\nPOST\n/api/captive-portal/gateway/observations\n{gateway}\n{timestamp}\n{nonce}\n{bodyHash}");
             var expected = HMACSHA256.HashData(key, payload);
             if (!CryptographicOperations.FixedTimeEquals(expected, Convert.FromHexString(signature!)))
+                return false;
+
+            if (configuredKeys.GetChildren().Any(entry =>
+                    !string.Equals(entry.Key, gateway, StringComparison.OrdinalIgnoreCase) && entry.Value == secret))
                 return false;
         }
         finally

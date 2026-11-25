@@ -1,6 +1,7 @@
 
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SafeNetZKP.Api.Controllers;
@@ -31,6 +32,11 @@ if (!builder.Environment.IsDevelopment())
     controllers.ConfigureApplicationPartManager(manager =>
         manager.FeatureProviders.Add(new DevelopmentControllerFeatureProvider()));
 builder.Services.AddOpenApi();
+
+var protectionEnvironment = builder.Environment.EnvironmentName.ToUpperInvariant();
+var protectionContentRoot = Path.TrimEndingDirectorySeparator(builder.Environment.ContentRootPath);
+builder.Services.AddDataProtection()
+    .SetApplicationName($"SafeNet-ZKP:{protectionEnvironment}:{protectionContentRoot}");
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(SafeNetCookieAuthentication.Configure);
@@ -67,15 +73,14 @@ var origins = builder.Configuration
     .GetSection("Fido2:Origins")
     .Get<string[]>();
 
-if (string.IsNullOrWhiteSpace(rpId) ||
+if (!WebAuthnOriginConfiguration.IsValidRpId(rpId) ||
     string.IsNullOrWhiteSpace(rpName) ||
     origins is null ||
     origins.Length == 0 ||
-    origins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var uri) ||
-        uri.Scheme != Uri.UriSchemeHttps))
+    origins.Any(origin => !WebAuthnOriginConfiguration.IsAllowedOrigin(origin, rpId)))
 {
     throw new InvalidOperationException(
-        "A configuração FIDO2 está incompleta.");
+        "A configuração FIDO2 exige um RP ID DNS e origens HTTPS canônicas vinculadas a ele.");
 }
 
 builder.Services.AddScoped<WebAuthnEnrollmentOptionsService>();
@@ -268,6 +273,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseRouting();
+app.UseMiddleware<SecurityOutcomeLogging>();
+
 // Bloqueia HTTP antes de processar cookies, desafios ou tokens de inscrição.
 app.Use(async (context, next) =>
 {
@@ -282,9 +290,6 @@ app.Use(async (context, next) =>
 
     await next(context);
 });
-
-// Identifica a rota da requisição.
-app.UseRouting();
 
 // Aplica as políticas de limitação de requisições.
 app.UseRateLimiter();

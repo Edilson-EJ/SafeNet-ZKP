@@ -192,10 +192,17 @@ public sealed class EndpointAuthorizationTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    [Fact]
-    public void WebAuthnConfiguration_RejectsAnHttpOrigin()
+    [Theory]
+    [InlineData("http://localhost", "localhost")]
+    [InlineData("https://localhost/path", "localhost")]
+    [InlineData("https://localhost?query=value", "localhost")]
+    [InlineData("https://user@localhost", "localhost")]
+    [InlineData("https://example.org", "localhost")]
+    [InlineData("https://notexample.org", "example.org")]
+    [InlineData("https://portal.example.org", "https://example.org")]
+    public void WebAuthnConfiguration_RejectsInvalidOriginOrRpId(string origin, string rpId)
     {
-        using var api = new Api(configuredOrigin: "http://localhost");
+        using var api = new Api(configuredOrigin: origin, configuredRpId: rpId);
         Assert.Throws<InvalidOperationException>(() => api.CreateHttpsClient());
     }
 
@@ -310,11 +317,13 @@ public sealed class EndpointAuthorizationTests
     {
         private readonly string _environment;
         private readonly string _configuredOrigin;
+        private readonly string _configuredRpId;
 
-        public Api(string environment = "Development", string configuredOrigin = Origin)
+        public Api(string environment = "Development", string configuredOrigin = Origin, string configuredRpId = "localhost")
         {
             _environment = environment;
             _configuredOrigin = configuredOrigin;
+            _configuredRpId = configuredRpId;
             Users = new UserRepository(Owner, Other);
             Passkey = new(Origin, Owner.Id);
         }
@@ -336,7 +345,7 @@ public sealed class EndpointAuthorizationTests
             builder.ConfigureHostConfiguration(config => config.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["Fido2:RPID"] = "localhost",
+                    ["Fido2:RPID"] = _configuredRpId,
                     ["Fido2:RPName"] = "SafeNet Tests",
                     ["Fido2:Origins:0"] = _configuredOrigin,
                     ["ConnectionStrings:DefaultConnection"] = ""

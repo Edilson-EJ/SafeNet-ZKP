@@ -196,9 +196,39 @@ public sealed partial class CaptivePortalHttpTests
         using var session = await api.SignInAsync();
         var binding = await AssociateAsync(session, api.Stage(session));
         api.Transport.Unavailable = true;
-        using var response = await AuthorizeAsync(session, binding, Guid.NewGuid());
+        var key = Guid.NewGuid();
+        using var response = await AuthorizeAsync(session, binding, key);
         var result = await ReadAsync(response, HttpStatusCode.Accepted, "indeterminate");
         Assert.Null(result.ExpiresAt);
+        api.Transport.Unavailable = false;
+        using var recovered = await AuthorizeAsync(session, binding, key);
+        Assert.Equal(result.OperationId, (await ReadAsync(recovered, HttpStatusCode.OK, "authorized")).OperationId);
+        Assert.Equal(1, api.Network.OperationCount);
+    }
+
+    [Fact]
+    public async Task LostGatewayStateMakesConfirmedAuthorizationIndeterminateAndPreventsResend()
+    {
+        var clock = new PortalTestClock();
+        using var api = new Api(clock: clock);
+        using var session = await api.SignInAsync();
+        var binding = await AssociateAsync(session, api.Stage(session));
+        var key = Guid.NewGuid();
+        using var confirmed = await AuthorizeAsync(session, binding, key);
+        var original = await ReadAsync(confirmed, HttpStatusCode.OK, "authorized");
+        var location = Root + $"/operations/{original.OperationId}";
+
+        api.Transport.Simulator = new InMemoryCaptivePortalGateway(clock);
+        api.Transport.AfterAuthorize = () => throw new InvalidOperationException("Previously confirmed grant was resent.");
+        using var reconciled = await session.Client.GetAsync(location);
+        Assert.Null((await ReadAsync(reconciled, HttpStatusCode.OK, "indeterminate")).ExpiresAt);
+        using var repeat = await AuthorizeAsync(session, binding, key);
+        Assert.Equal(original.OperationId, (await ReadAsync(repeat, HttpStatusCode.Accepted, "indeterminate")).OperationId);
+        Assert.Equal(1, api.Network.OperationCount);
+
+        clock.Now = original.ExpiresAt!.Value;
+        using var expired = await session.Client.GetAsync(location);
+        await ReadAsync(expired, HttpStatusCode.OK, "expired");
     }
 
     [Fact]
@@ -279,7 +309,8 @@ public sealed partial class CaptivePortalHttpTests
 
     private sealed class Api(string environment = "Development", string? connectionString = null,
         InMemoryCaptivePortalGateway? survivingGateway = null, bool processRevocations = false,
-        TimeProvider? clock = null, Action<IWebHostBuilder>? configure = null) : WebApplicationFactory<Program>
+        TimeProvider? clock = null, Action<IWebHostBuilder>? configure = null,
+        bool usePersistentDataProtection = false) : WebApplicationFactory<Program>
     {
         public HttpNetworkRepository Network { get; } = new();
         public TransportGateway Transport => Services.GetRequiredService<TransportGateway>();
@@ -351,7 +382,8 @@ public sealed partial class CaptivePortalHttpTests
             });
             builder.ConfigureServices(services =>
             {
-                services.AddDataProtection().UseEphemeralDataProtectionProvider();
+                if (!usePersistentDataProtection)
+                    services.AddDataProtection().UseEphemeralDataProtectionProvider();
                 if (clock is not null)
                 {
                     services.RemoveAll<TimeProvider>();
@@ -386,6 +418,7 @@ public sealed partial class CaptivePortalHttpTests
     private sealed class TransportGateway(InMemoryCaptivePortalGateway inner)
         : ICaptivePortalGateway, ICaptivePortalAssociationGateway
     {
+        public InMemoryCaptivePortalGateway Simulator { get; set; } = inner;
         public bool Unavailable { get; set; }
         public Func<Task>? AfterAuthorize { get; set; }
         public Func<Task>? AfterAssociate { get; set; }
@@ -393,7 +426,7 @@ public sealed partial class CaptivePortalHttpTests
         public async Task<NetworkAssociation?> AssociateAsync(ObservedNetworkConnection observation,
             NetworkAssociationRequest request, CancellationToken ct)
         {
-            var result = await inner.AssociateAsync(observation, request, ct);
+            var result = await Simulator.AssociateAsync(observation, request, ct);
             if (AfterAssociate is { } after)
                 await after();
             return result;
@@ -403,18 +436,18 @@ public sealed partial class CaptivePortalHttpTests
         {
             if (Unavailable)
                 throw new GatewayCommunicationException();
-            var result = await inner.AuthorizeAsync(request, ct);
+            var result = await Simulator.AuthorizeAsync(request, ct);
             if (AfterAuthorize is { } after)
                 await after();
             return result;
         }
 
         public Task<GatewayConnectionResult> GetSessionAsync(NetworkConnectionKey connection, CancellationToken ct) =>
-            inner.GetSessionAsync(connection, ct);
+            Simulator.GetSessionAsync(connection, ct);
         public Task<GatewayOperationResult> GetOperationAsync(Guid gatewayId, Guid operationId, CancellationToken ct) =>
-            Unavailable ? throw new GatewayCommunicationException() : inner.GetOperationAsync(gatewayId, operationId, ct);
+            Unavailable ? throw new GatewayCommunicationException() : Simulator.GetOperationAsync(gatewayId, operationId, ct);
         public Task<GatewayOperationResult> RevokeAsync(NetworkRevocationRequest request, CancellationToken ct) =>
-            inner.RevokeAsync(request, ct);
+            Simulator.RevokeAsync(request, ct);
     }
 
     private sealed class HttpNetworkRepository : INetworkAccessRepository
@@ -488,8 +521,13 @@ public sealed partial class CaptivePortalHttpTests
                 var row = _rows[id];
                 if (row.RevocationId is null)
                 {
-                    row.State = state;
-                    row.ConfirmedUntil = confirmedUntil;
+                    row.State = state == NetworkAccessState.Denied && row.GrantState == NetworkAccessState.Authorized
+                        ? NetworkAccessState.Indeterminate : state;
+                    if (state == NetworkAccessState.Authorized)
+                    {
+                        row.GrantState = state;
+                        row.ConfirmedUntil = confirmedUntil;
+                    }
                 }
                 return Task.CompletedTask;
             }
@@ -545,6 +583,7 @@ public sealed partial class CaptivePortalHttpTests
         {
             public NetworkAccessEntry Entry { get; } = entry;
             public NetworkAccessState State { get; set; }
+            public NetworkAccessState? GrantState { get; set; }
             public DateTimeOffset? ConfirmedUntil { get; set; }
             public Guid? RevocationId { get; set; }
             public NetworkAccessState? RevocationState { get; set; }
@@ -554,7 +593,8 @@ public sealed partial class CaptivePortalHttpTests
                 Id = Entry.Id, AssociationId = Entry.AssociationId, Association = Entry.Association,
                 IdempotencyKey = Entry.IdempotencyKey, GrantId = Entry.GrantId, Revision = Entry.Revision,
                 ValidUntil = Entry.ValidUntil, AccessUntil = Entry.AccessUntil, CreatedAt = Entry.CreatedAt,
-                ConfirmedUntil = ConfirmedUntil, State = State, RevocationId = RevocationId, RevocationState = RevocationState
+                ConfirmedUntil = ConfirmedUntil, State = State, GrantState = GrantState,
+                RevocationId = RevocationId, RevocationState = RevocationState
             };
         }
 

@@ -23,8 +23,8 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         CancellationToken cancellationToken)
     {
         _logger.LogError(
-            exception,
-            "Erro não tratado durante o processamento da requisição.");
+            "Erro não tratado do tipo {ExceptionType} na requisição {TraceId}.",
+            exception.GetType().Name, httpContext.TraceIdentifier);
 
         httpContext.Response.StatusCode =
             StatusCodes.Status500InternalServerError;

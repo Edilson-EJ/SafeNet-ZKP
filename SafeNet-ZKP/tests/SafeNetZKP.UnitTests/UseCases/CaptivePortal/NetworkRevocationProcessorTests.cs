@@ -1,3 +1,4 @@
+using System.Data.Common;
 using SafeNetZKP.Application.Interfaces.Gateways;
 using SafeNetZKP.Application.Interfaces.Repositories;
 using SafeNetZKP.Application.UseCases.CaptivePortal;
@@ -9,6 +10,37 @@ namespace SafeNetZKP.UnitTests.UseCases.CaptivePortal;
 public sealed class NetworkRevocationProcessorTests
 {
     private static readonly CancellationToken Ct = CancellationToken.None;
+
+    [Fact]
+    public async Task TimedOutQueryLeavesRevocationUnresolvedAndDoesNotSendAfterBudget()
+    {
+        var lab = new Lab();
+        var clock = new AttemptClock(lab.Clock.GetUtcNow());
+        var transport = new LostReplyGateway(lab.Gateway) { OnQuery = () => clock.Elapsed() };
+        var result = await new NetworkRevocationProcessor(lab.Repository, transport, clock).ProcessPendingAsync(10, Ct);
+        Assert.Equal(new NetworkRevocationBatch(0, 0, 1), result);
+        Assert.Equal(NetworkAccessState.Indeterminate, lab.Repository.State);
+        Assert.Null(transport.Command);
+    }
+
+    [Fact]
+    public async Task ConfirmationCanBeRecoveredAfterWritingTheResultFails()
+    {
+        var lab = new Lab();
+        await lab.AuthorizeAsync();
+        lab.Repository.FailWrite = true;
+        await Assert.ThrowsAsync<TemporaryWriteException>(() =>
+            new NetworkRevocationProcessor(lab.Repository, lab.Gateway, lab.Clock).ProcessPendingAsync(10, Ct));
+        Assert.Equal(NetworkAccessState.Pending, lab.Repository.State);
+        lab.Repository.FailWrite = false;
+
+        var transport = new LostReplyGateway(lab.Gateway);
+        var result = await new NetworkRevocationProcessor(lab.Repository, transport, lab.Clock)
+            .ProcessPendingAsync(10, Ct);
+        Assert.Equal(new NetworkRevocationBatch(1, 0, 0), result);
+        Assert.Equal(NetworkAccessState.Revoked, lab.Repository.State);
+        Assert.Null(transport.Command);
+    }
 
     [Fact]
     public async Task LostReplyIsIndeterminateAndNewProcessorRecognizesGatewayConfirmation()
@@ -90,6 +122,7 @@ public sealed class NetworkRevocationProcessorTests
     private sealed class LostReplyGateway(ICaptivePortalGateway inner, bool wrongGrant = false) : ICaptivePortalGateway
     {
         public NetworkRevocationRequest? Command { get; private set; }
+        public Action? OnQuery { get; init; }
 
         public async Task<GatewayOperationResult> RevokeAsync(NetworkRevocationRequest request, CancellationToken ct)
         {
@@ -102,8 +135,12 @@ public sealed class NetworkRevocationProcessorTests
             throw new TimeoutException();
         }
 
-        public Task<GatewayOperationResult> GetOperationAsync(Guid gatewayId, Guid operationId, CancellationToken ct) =>
-            inner.GetOperationAsync(gatewayId, operationId, ct);
+        public Task<GatewayOperationResult> GetOperationAsync(Guid gatewayId, Guid operationId, CancellationToken ct)
+        {
+            OnQuery?.Invoke();
+            ct.ThrowIfCancellationRequested();
+            return inner.GetOperationAsync(gatewayId, operationId, ct);
+        }
         public Task<GatewayOperationResult> AuthorizeAsync(NetworkAuthorizationRequest request, CancellationToken ct) =>
             throw new NotSupportedException();
         public Task<GatewayConnectionResult> GetSessionAsync(NetworkConnectionKey connection, CancellationToken ct) =>
@@ -114,6 +151,7 @@ public sealed class NetworkRevocationProcessorTests
     {
         public NetworkAccessEntry Entry { get; } = entry;
         public NetworkAccessState State { get; private set; } = NetworkAccessState.Pending;
+        public bool FailWrite { get; set; }
 
         public Task<IReadOnlyList<NetworkAccessEntry>> ListPendingRevocationsAsync(int limit, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<NetworkAccessEntry>>(
@@ -124,6 +162,8 @@ public sealed class NetworkRevocationProcessorTests
         {
             Assert.Equal(Entry.Id, id);
             Assert.Equal(Entry.RevocationId, revocationId);
+            if (FailWrite)
+                throw new TemporaryWriteException();
             State = state;
             return Task.CompletedTask;
         }
@@ -141,6 +181,28 @@ public sealed class NetworkRevocationProcessorTests
             DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
         public Task<bool> QueueRevocationAsync(Guid id, Guid userId, byte[] sessionHash, DateTimeOffset now,
             CancellationToken ct) => throw new NotSupportedException();
+    }
+
+    private sealed class TemporaryWriteException : DbException;
+
+    private sealed class AttemptClock(DateTimeOffset now) : TimeProvider
+    {
+        public Action Elapsed { get; private set; } = null!;
+        public override DateTimeOffset GetUtcNow() => now;
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            Assert.Equal(TimeSpan.FromSeconds(2), dueTime);
+            Elapsed = () => callback(state);
+            return new OneShotTimer();
+        }
+
+        private sealed class OneShotTimer : ITimer
+        {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => throw new NotSupportedException();
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
     }
 
     private sealed class ManualClock : TimeProvider

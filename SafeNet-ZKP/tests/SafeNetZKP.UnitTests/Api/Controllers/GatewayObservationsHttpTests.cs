@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using SafeNetZKP.Api.Controllers;
 using SafeNetZKP.Application.Interfaces.Repositories;
 using SafeNetZKP.Domain.CaptivePortal;
@@ -110,25 +111,129 @@ public sealed partial class CaptivePortalHttpTests
         Assert.Equal(0, lab.Store.Attempts);
     }
 
+    [Fact]
+    public async Task SharedGatewayKeyCannotAuthenticateEitherConfiguredIdentity()
+    {
+        using var lab = new GatewayLab(duplicateKey: true);
+        using var first = lab.Report();
+        using var second = lab.Report(sender: lab.OtherGateway);
+        using var firstResult = await lab.Client.SendAsync(first);
+        using var secondResult = await lab.Client.SendAsync(second);
+        Assert.Equal(HttpStatusCode.Unauthorized, firstResult.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, secondResult.StatusCode);
+        Assert.Equal(0, lab.Store.Attempts);
+    }
+
+    [Fact]
+    public async Task GatewayCredentialRevocationAndRotationPreserveReplayHistoryAndExistingOperations()
+    {
+        using var lab = new GatewayLab();
+        using var owner = await lab.Host.SignInAsync();
+        var binding = await AssociateAsync(owner, lab.Host.Stage(owner));
+        using var authorization = await AuthorizeAsync(owner, binding, Guid.NewGuid());
+        var operation = await ReadAsync(authorization, HttpStatusCode.OK, "authorized");
+        var location = Root + $"/operations/{operation.OperationId}";
+        var originalNonce = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16));
+        var replacementKey = RandomNumberGenerator.GetBytes(32);
+        var otherKey = RandomNumberGenerator.GetBytes(32);
+        try
+        {
+            async Task<HttpStatusCode> SubmitAsync(HttpRequestMessage report)
+            {
+                using (report)
+                using (var response = await lab.Client.SendAsync(report))
+                    return response.StatusCode;
+            }
+
+            Assert.Equal(HttpStatusCode.NoContent, await SubmitAsync(lab.Report(nonce: originalNonce)));
+            lab.SetKey(lab.Gateway, null);
+            Assert.Equal(HttpStatusCode.Unauthorized, await SubmitAsync(lab.Report()));
+            Assert.Single(lab.Store.Records);
+
+            using var existing = await owner.Client.GetAsync(location);
+            await ReadAsync(existing, HttpStatusCode.OK, "authorized");
+            Assert.Equal(1, lab.Host.Network.OperationCount);
+
+            lab.SetKey(lab.Gateway, replacementKey);
+            lab.SetKey(lab.OtherGateway, otherKey);
+            Assert.Equal(HttpStatusCode.Unauthorized, await SubmitAsync(lab.Report()));
+            Assert.Equal(HttpStatusCode.Unauthorized,
+                await SubmitAsync(lab.Report(sender: lab.OtherGateway, signedWith: replacementKey)));
+            Assert.Equal(HttpStatusCode.Conflict,
+                await SubmitAsync(lab.Report(nonce: originalNonce, signedWith: replacementKey)));
+            Assert.Equal(HttpStatusCode.NoContent,
+                await SubmitAsync(lab.Report(signedWith: replacementKey)));
+            Assert.Equal(HttpStatusCode.NoContent,
+                await SubmitAsync(lab.Report(sender: lab.OtherGateway, signedWith: otherKey, nonce: originalNonce)));
+            Assert.Equal(3, lab.Store.Records.Count());
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(replacementKey);
+            CryptographicOperations.ZeroMemory(otherKey);
+        }
+    }
+
+    [Fact]
+    public async Task GatewayAuditDistinguishesReplayWithoutLoggingCredentials()
+    {
+        using var logs = new AuditProbe();
+        using var lab = new GatewayLab(logs: logs);
+        var nonce = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16));
+        var cookie = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        using var first = lab.Report(nonce: nonce);
+        first.Headers.Add("Cookie", $"__Host-SafeNetZKP={cookie}");
+        using var accepted = await lab.Client.SendAsync(first);
+        Assert.Equal(HttpStatusCode.NoContent, accepted.StatusCode);
+        using var duplicate = lab.Report(nonce: nonce);
+        using var replay = await lab.Client.SendAsync(duplicate);
+        Assert.Equal(HttpStatusCode.Conflict, replay.StatusCode);
+        var fields = await logs.Replay.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal("GatewayObservations", fields["Controller"]);
+        Assert.Equal("Record", fields["Action"]);
+        Assert.NotNull(fields["TraceId"]);
+        var signature = Assert.Single(first.Headers.GetValues("X-SafeNet-Signature"));
+        Assert.All(logs.Messages, message =>
+        {
+            Assert.DoesNotContain(nonce, message);
+            Assert.DoesNotContain(cookie, message);
+            Assert.DoesNotContain(signature, message);
+            Assert.DoesNotContain(lab.EncodedKey, message);
+        });
+    }
+
     private sealed class GatewayLab : IDisposable
     {
         private readonly byte[] _secret = RandomNumberGenerator.GetBytes(32);
         private readonly PortalTestClock _clock = new();
         public Guid Gateway { get; } = Guid.NewGuid();
+        public Guid OtherGateway { get; } = Guid.NewGuid();
         public Guid Connection { get; } = Guid.NewGuid();
         public ObservationStore Store { get; } = new();
         public Api Host { get; }
         public HttpClient Client { get; }
+        public string EncodedKey => Convert.ToBase64String(_secret);
 
-        public GatewayLab(string environment = "Development")
+        public void SetKey(Guid gateway, byte[]? key) =>
+            Host.Services.GetRequiredService<IConfiguration>()[$"CaptivePortal:GatewayKeys:{gateway:D}"] =
+                key is null ? null : Convert.ToBase64String(key);
+
+        public GatewayLab(string environment = "Development", ILoggerProvider? logs = null, bool duplicateKey = false)
         {
             Host = new Api(environment, clock: _clock, configure: builder =>
             {
-                builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-                    new Dictionary<string, string?>
+                if (logs is not null)
+                    builder.ConfigureLogging(logging => logging.AddProvider(logs));
+                builder.ConfigureAppConfiguration((_, config) =>
+                {
+                    var keys = new Dictionary<string, string?>
                     {
                         [$"CaptivePortal:GatewayKeys:{Gateway:D}"] = Convert.ToBase64String(_secret)
-                    }));
+                    };
+                    if (duplicateKey)
+                        keys[$"CaptivePortal:GatewayKeys:{OtherGateway:D}"] = Convert.ToBase64String(_secret);
+                    config.AddInMemoryCollection(keys);
+                });
                 builder.ConfigureServices(services =>
                 {
                     services.RemoveAll<IGatewayObservationRepository>();
@@ -170,6 +275,28 @@ public sealed partial class CaptivePortalHttpTests
             Client.Dispose();
             Host.Dispose();
             CryptographicOperations.ZeroMemory(_secret);
+        }
+    }
+
+    private sealed class AuditProbe : ILoggerProvider, ILogger
+    {
+        public ConcurrentQueue<string> Messages { get; } = new();
+        public TaskCompletionSource<IReadOnlyDictionary<string, object?>> Replay { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public ILogger CreateLogger(string categoryName) => this;
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Dispose() { }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Messages.Enqueue(formatter(state, exception));
+            if (state is IReadOnlyList<KeyValuePair<string, object?>> fields &&
+                fields.Any(field => field is { Key: "Controller", Value: "GatewayObservations" }) &&
+                fields.Any(field => field is { Key: "StatusCode", Value: 409 }))
+                Replay.TrySetResult(fields.ToDictionary(field => field.Key, field => field.Value));
         }
     }
 
